@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { authRepository } from "./auth.repository";
 import { LoginDTO, RegisterDTO } from "./auth.types";
 import { generateAccessToken, generateRefreshToken } from "../../utils/jwt";
+import { auditService } from "../audit/audit.service";
 
 const SALT_ROUNDS = 12;
 
@@ -13,6 +14,22 @@ export const authService = {
    */
   async register(data: RegisterDTO) {
     const existingUser = await authRepository.findUserByEmail(data.email);
+    await auditService.log({
+
+    userId: user.id,
+
+    action: AuditActions.REGISTER,
+
+    entity: "User",
+
+    entityId: user.id,
+
+    ipAddress: request.ip,
+
+    userAgent:
+        request.get("user-agent"),
+
+});
 
     if (existingUser) {
       throw new Error("Email already exists.");
@@ -72,7 +89,22 @@ generateRefreshToken(payload);
       data.password,
       user.password
     );
+await auditService.log({
 
+    userId: user.id,
+
+    action: AuditActions.LOGIN,
+
+    entity: "User",
+
+    entityId: user.id,
+
+    ipAddress: request.ip,
+
+    userAgent:
+        request.get("user-agent"),
+
+});
     if (!passwordMatches) {
       throw new Error("Invalid email or password.");
     }
