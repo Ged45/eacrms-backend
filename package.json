@@ -8,6 +8,9 @@
     "build": "tsc",
     "start": "node dist/server.js"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ged45/eacrms-backend.git"
@@ -21,14 +24,20 @@
   },
   "homepage": "https://github.com/Ged45/eacrms-backend#readme",
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
-    "prisma": "^7.9.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@prisma/client": "^7.9.0",
-    "express": "^5.2.1"
+    "@prisma/client": "^6.19.3",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "prisma": "^6.19.3",
+    "zod": "^4.4.3"
   }
 }
