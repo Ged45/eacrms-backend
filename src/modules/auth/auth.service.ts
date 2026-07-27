@@ -1,10 +1,25 @@
 import bcrypt from "bcrypt";
+
+import { UserStatus } from "@prisma/client";
+
 import { authRepository } from "./auth.repository";
-import { LoginDTO, RegisterDTO } from "./auth.types";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt";
 import { auditService } from "../audit/audit.service";
 
+import { RegisterDTO, LoginDTO } from "./auth.types";
+
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../../utils/jwt";
+
+import { AuditActions } from "../../constants/audit-actions";
+
 const SALT_ROUNDS = 12;
+
+interface RequestMetadata {
+  ipAddress?: string;
+  userAgent?: string;
+}
 
 export const authService = {
   /**
@@ -12,24 +27,13 @@ export const authService = {
    * Register User
    * ----------------------------------------
    */
-  async register(data: RegisterDTO) {
-    const existingUser = await authRepository.findUserByEmail(data.email);
-    await auditService.log({
-
-    userId: user.id,
-
-    action: AuditActions.REGISTER,
-
-    entity: "User",
-
-    entityId: user.id,
-
-    ipAddress: request.ip,
-
-    userAgent:
-        request.get("user-agent"),
-
-});
+  async register(
+    data: RegisterDTO,
+    metadata?: RequestMetadata
+  ) {
+    const existingUser = await authRepository.findUserByEmail(
+      data.email
+    );
 
     if (existingUser) {
       throw new Error("Email already exists.");
@@ -47,6 +51,8 @@ export const authService = {
       lastName: data.lastName,
       phoneNumber: data.phoneNumber,
       roleName: "ATHLETE",
+      ipAddress: metadata?.ipAddress,
+      userAgent: metadata?.userAgent,
     });
 
     return {
@@ -65,77 +71,67 @@ export const authService = {
    * Login User
    * ----------------------------------------
    */
-  async login(data: LoginDTO) {
-    const user = await authRepository.findUserByEmail(data.email);
+  async login(
+    data: LoginDTO,
+    metadata?: RequestMetadata
+  ) {
+    const user = await authRepository.findUserByEmail(
+      data.email
+    );
 
     if (!user) {
       throw new Error("Invalid email or password.");
     }
-    const payload = {
 
-    userId: user.id,
-
-    email: user.email,
-
-    roles: user.roles.map(r => r.role.name),
-
-};
-const accessToken =
-generateAccessToken(payload);
-
-const refreshToken =
-generateRefreshToken(payload);
     const passwordMatches = await bcrypt.compare(
       data.password,
       user.password
     );
-await auditService.log({
 
-    userId: user.id,
-
-    action: AuditActions.LOGIN,
-
-    entity: "User",
-
-    entityId: user.id,
-
-    ipAddress: request.ip,
-
-    userAgent:
-        request.get("user-agent"),
-
-});
     if (!passwordMatches) {
       throw new Error("Invalid email or password.");
     }
 
-    if (user.status !== "ACTIVE") {
-      throw new Error(
-        "Your account is not active."
-      );
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new Error("Your account is not active.");
     }
 
-    // JWT will be added in the next lesson
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      roles: user.roles.map((r) => r.role.name),
+    };
 
-   return {
+    const accessToken = generateAccessToken(payload);
 
-    user: {
+    const refreshToken = generateRefreshToken(payload);
 
-        id: user.id,
-
+    await auditService.log({
+      userId: user.id,
+      action: AuditActions.LOGIN,
+      entity: "USER",
+      entityId: user.id,
+      details: {
         email: user.email,
+      },
+      ipAddress: metadata?.ipAddress,
+      userAgent: metadata?.userAgent,
+    });
 
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
         firstName: user.firstName,
-
         lastName: user.lastName,
+        status: user.status,
+        roles: user.roles.map((r) => r.role.name),
+      },
 
-    },
+      accessToken,
 
-    accessToken,
-
-    refreshToken,
-
-};
+      refreshToken,
+    };
   },
 
   /**
@@ -144,7 +140,9 @@ await auditService.log({
    * ----------------------------------------
    */
   async me(userId: string) {
-    const user = await authRepository.findUserById(userId);
+    const user = await authRepository.findUserById(
+      userId
+    );
 
     if (!user) {
       throw new Error("User not found.");
@@ -158,6 +156,9 @@ await auditService.log({
       phoneNumber: user.phoneNumber,
       status: user.status,
       roles: user.roles.map((r) => r.role.name),
+      permissions: user.roles.flatMap((r) =>
+        r.role.permissions.map((p) => p.permission.name)
+      ),
     };
   },
 };

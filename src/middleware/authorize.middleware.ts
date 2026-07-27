@@ -7,7 +7,7 @@ import {
 import { ForbiddenError } from "../errors/ForbiddenError";
 
 import { authorizationService }
-from "../modules/authorization/authorization.service";
+from "../modules/authorizations/authorization.service";
 
 export function authorize(
     permission: string

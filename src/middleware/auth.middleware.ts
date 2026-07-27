@@ -42,13 +42,20 @@ export function authenticate(
 
         next();
 
-    } catch {
+    } catch (error) {
 
-        next(
-            new UnauthorizedError(
-                "Invalid or expired token."
-            )
-        );
+        if (
+            error instanceof UnauthorizedError ||
+            (error instanceof Error && error.message.includes("SECRET"))
+        ) {
+            next(error);
+        } else {
+            next(
+                new UnauthorizedError(
+                    "Invalid or expired token."
+                )
+            );
+        }
 
     }
 }

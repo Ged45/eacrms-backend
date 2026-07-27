@@ -1,15 +1,21 @@
 import jwt from "jsonwebtoken";
 
-const ACCESS_SECRET =
-    process.env.JWT_ACCESS_SECRET!;
-
-const REFRESH_SECRET =
-    process.env.JWT_REFRESH_SECRET!;
-
 export interface JwtPayload {
     userId: string;
     email: string;
     roles: string[];
+}
+
+function getAccessSecret(): string {
+    const secret = process.env.JWT_ACCESS_SECRET;
+    if (!secret) throw new Error("JWT_ACCESS_SECRET is not set.");
+    return secret;
+}
+
+function getRefreshSecret(): string {
+    const secret = process.env.JWT_REFRESH_SECRET;
+    if (!secret) throw new Error("JWT_REFRESH_SECRET is not set.");
+    return secret;
 }
 
 export function generateAccessToken(
@@ -17,10 +23,10 @@ export function generateAccessToken(
 ) {
     return jwt.sign(
         payload,
-        ACCESS_SECRET,
+        getAccessSecret(),
         {
             expiresIn:
-                process.env.JWT_ACCESS_EXPIRES_IN,
+                (process.env.JWT_ACCESS_EXPIRES_IN ?? "15m") as jwt.SignOptions["expiresIn"],
         }
     );
 }
@@ -30,10 +36,10 @@ export function generateRefreshToken(
 ) {
     return jwt.sign(
         payload,
-        REFRESH_SECRET,
+        getRefreshSecret(),
         {
             expiresIn:
-                process.env.JWT_REFRESH_EXPIRES_IN,
+                (process.env.JWT_REFRESH_EXPIRES_IN ?? "7d") as jwt.SignOptions["expiresIn"],
         }
     );
 }
@@ -43,7 +49,7 @@ export function verifyAccessToken(
 ) {
     return jwt.verify(
         token,
-        ACCESS_SECRET
+        getAccessSecret()
     ) as JwtPayload;
 }
 
@@ -52,6 +58,6 @@ export function verifyRefreshToken(
 ) {
     return jwt.verify(
         token,
-        REFRESH_SECRET
+        getRefreshSecret()
     ) as JwtPayload;
 }

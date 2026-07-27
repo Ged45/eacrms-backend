@@ -1,4 +1,5 @@
-import prisma from "../../config/prisma";
+import prisma from "../../lib/prisma";
+import { Prisma } from "@prisma/client";
 
 import { AuditLogDTO } from "./audit.types";
 
@@ -18,7 +19,9 @@ export const auditRepository = {
 
                 entityId: data.entityId,
 
-                details: data.details,
+                newValue: data.details !== undefined
+                    ? (data.details as Prisma.InputJsonValue)
+                    : Prisma.DbNull,
 
                 ipAddress: data.ipAddress,
 

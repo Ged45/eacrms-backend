@@ -1,6 +1,6 @@
 export interface AuditLogDTO {
 
-    userId?: string;
+    userId: string;
 
     action: string;
 

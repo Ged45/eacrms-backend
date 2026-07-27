@@ -7,6 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AthleteStatus {
+  PENDING
+  FAYDA_VERIFIED
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum BloodType {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+enum DominantHand {
+  LEFT
+  RIGHT
+  AMBIDEXTROUS
+}enum DominantFoot {
+  LEFT
+  RIGHT
+  BOTH
+}
 enum UserStatus {
   ACTIVE
   PENDING
@@ -29,7 +62,76 @@ model User {
 
   roles       UserRole[]
   auditLogs   AuditLog[]
+  athlete     Athlete?
 }
+
+model Sport {
+
+  id String @id @default(cuid())
+
+  name String @unique
+
+  description String?
+
+  athletes Athlete[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+}
+model Club {
+
+  id String @id @default(cuid())
+
+  name String
+
+  registrationNumber String @unique
+
+  athletes Athlete[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+}
+
+
+model Athlete {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sportId String?
+  sport   Sport?  @relation(fields: [sportId], references: [id])
+
+  clubId String?
+  club   Club?   @relation(fields: [clubId], references: [id])
+
+  dateOfBirth DateTime
+  gender      Gender
+  nationality String
+
+  height Int?
+  weight Int?
+
+  dominantHand DominantHand?
+  dominantFoot DominantFoot?
+  bloodType    BloodType?
+
+  position     String?
+  jerseyNumber Int?
+
+  status AthleteStatus @default(PENDING)
+
+  faydaVerified   Boolean   @default(false)
+  faydaVerifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 
 model Role {
   id          String   @id @default(cuid())
