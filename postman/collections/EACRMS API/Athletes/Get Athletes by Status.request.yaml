@@ -1,0 +1,19 @@
+$kind: http-request
+name: Get Athletes by Status
+method: GET
+url: '{{baseUrl}}/api/v1/athletes/status/{{status}}'
+order: 6000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Response is an array", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.be.an("array");
+      });

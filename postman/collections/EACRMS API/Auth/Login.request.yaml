@@ -1,0 +1,36 @@
+$kind: http-request
+name: Login
+method: POST
+url: '{{baseUrl}}/api/v1/auth/login'
+order: 2000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "test@example.com",
+      "password": "Password123"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Response has accessToken", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("accessToken");
+        pm.expect(json).to.have.property("refreshToken");
+        // Save tokens for subsequent requests
+        pm.collectionVariables.set("accessToken", json.accessToken);
+        pm.collectionVariables.set("refreshToken", json.refreshToken);
+      });
+      pm.test("Response has user object", () => {
+        const json = pm.response.json();
+        pm.expect(json.user).to.have.property("id");
+        pm.expect(json.user).to.have.property("email");
+        pm.expect(json.user).to.have.property("roles");
+      });

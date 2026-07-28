@@ -96,7 +96,7 @@ export const authController = {
   ) {
     try {
       // Will be populated by auth middleware later
-      const userId = (req as any).user.id;
+      const userId = req.user.userId;
 
       const user =
         await authService.me(userId);

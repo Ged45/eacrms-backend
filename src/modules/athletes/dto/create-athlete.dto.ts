@@ -1,4 +1,4 @@
-import {Gender, DominantHand, DominantFoot, BloodType} from "@prisma/client"
+import { Gender, DominantHand, DominantFoot, BloodType, RegistrationSource } from "@prisma/client"
 
 export interface CreateAthleteDTO {
 
@@ -33,5 +33,10 @@ export interface CreateAthleteDTO {
     dominantFoot?: DominantFoot;
 
     bloodType?: BloodType;
+
+    // set by the service, not directly by the user
+    registrationSource?: RegistrationSource;
+
+    registeredById?: string;
 
 }

@@ -1,0 +1,34 @@
+name: EACRMS Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:5000'
+    type: default
+    enabled: true
+  - key: accessToken
+    value: ''
+    type: secret
+    enabled: true
+  - key: refreshToken
+    value: ''
+    type: secret
+    enabled: true
+  - key: clubId
+    value: ''
+    type: default
+    enabled: true
+  - key: athleteId
+    value: ''
+    type: default
+    enabled: true
+  - key: coachId
+    value: ''
+    type: default
+    enabled: true
+  - key: verificationId
+    value: ''
+    type: default
+    enabled: true
+  - key: status
+    value: PENDING
+    type: default
+    enabled: true

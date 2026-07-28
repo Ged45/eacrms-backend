@@ -47,29 +47,21 @@ export class AthleteRepository {
       // Create Athlete Profile
       const athlete = await tx.athlete.create({
         data: {
-          userId: user.id,
-
-          dateOfBirth: data.dateOfBirth,
-
-          gender: data.gender,
-
-          nationality: data.nationality,
-
-          sportId: data.sportId,
-
-          clubId: data.clubId,
-
-          position: data.position,
-
-          height: data.height,
-
-          weight: data.weight,
-
-          dominantHand: data.dominantHand,
-
-          dominantFoot: data.dominantFoot,
-
-          bloodType: data.bloodType,
+          userId:            user.id,
+          dateOfBirth:       data.dateOfBirth,
+          gender:            data.gender,
+          nationality:       data.nationality,
+          sportId:           data.sportId,
+          clubId:            data.clubId,
+          position:          data.position,
+          height:            data.height,
+          weight:            data.weight,
+          dominantHand:      data.dominantHand,
+          dominantFoot:      data.dominantFoot,
+          bloodType:         data.bloodType,
+          registrationSource: data.registrationSource ?? "SELF",
+          registeredById:    data.registeredById,
+          status:            data.registeredById ? "PENDING" : "DRAFT",
         },
         include: {
           user: true,

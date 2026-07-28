@@ -7,13 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
 enum AthleteStatus {
+  DRAFT
   PENDING
   FAYDA_VERIFIED
   APPROVED
   ACTIVE
   SUSPENDED
   REJECTED
+}
+
+enum RegistrationSource {
+  SELF
+  CLUB_ADMIN
+}
+
+enum ClubVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
 }
 
 enum Gender {
@@ -31,15 +46,19 @@ enum BloodType {
   O_POSITIVE
   O_NEGATIVE
 }
+
 enum DominantHand {
   LEFT
   RIGHT
   AMBIDEXTROUS
-}enum DominantFoot {
+}
+
+enum DominantFoot {
   LEFT
   RIGHT
   BOTH
 }
+
 enum UserStatus {
   ACTIVE
   PENDING
@@ -47,59 +66,76 @@ enum UserStatus {
   DELETED
 }
 
+enum FaydaVerificationStatus {
+  PENDING
+  OTP_SENT
+  CONFIRMED
+  FAILED
+  EXPIRED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
 model User {
-  id          String      @id @default(cuid())
-  email       String      @unique
+  id          String     @id @default(cuid())
+  email       String     @unique
   password    String
   firstName   String
   lastName    String
-  phoneNumber String?     @unique
+  phoneNumber String?    @unique
 
-  status      UserStatus  @default(PENDING)
+  status      UserStatus @default(PENDING)
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  roles       UserRole[]
-  auditLogs   AuditLog[]
-  athlete     Athlete?
+  roles              UserRole[]
+  auditLogs          AuditLog[]
+  athlete            Athlete?
+  registeredAthletes Athlete[] @relation("RegisteredAthletes")
+  coaches            Coach[]
+  registeredCoaches  Coach[]   @relation("RegisteredCoaches")
+  verifiedClubs      Club[]    @relation("VerifiedClubs")
 }
 
 model Sport {
-
-  id String @id @default(cuid())
-
-  name String @unique
-
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String?
-
-  athletes Athlete[]
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
+  athletes    Athlete[]
+  coaches     Coach[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
+
 model Club {
+  id                 String                 @id @default(cuid())
+  name               String
+  shortName          String?
+  email              String?                @unique
+  phone              String?
+  address            String?
+  city               String?
+  region             String?
+  registrationNumber String?                @unique
+  licenseNumber      String?                @unique
+  logoUrl            String?
+  verificationStatus ClubVerificationStatus @default(PENDING)
+  verifiedBy         String?
+  verifiedAt         DateTime?
+  rejectionReason    String?
+  athletes           Athlete[]
+  coaches            Coach[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  verifier           User?                  @relation("VerifiedClubs", fields: [verifiedBy], references: [id])
 
-  id String @id @default(cuid())
-
-  name String
-
-  registrationNumber String @unique
-
-  athletes Athlete[]
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
+  @@index([verificationStatus])
+  @@index([name])
 }
-
 
 model Athlete {
-  id String @id @default(cuid())
-
+  id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -123,15 +159,51 @@ model Athlete {
   position     String?
   jerseyNumber Int?
 
-  status AthleteStatus @default(PENDING)
+  status             AthleteStatus      @default(DRAFT)
+  registrationSource RegistrationSource @default(SELF)
+  registeredById     String?
+  registeredBy       User?              @relation("RegisteredAthletes", fields: [registeredById], references: [id])
 
   faydaVerified   Boolean   @default(false)
   faydaVerifiedAt DateTime?
+  faydaNin        String?   @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  faydaVerifications FaydaVerification[]
 }
 
+model Coach {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sportId String?
+  sport   Sport?  @relation(fields: [sportId], references: [id])
+
+  clubId String?
+  club   Club?   @relation(fields: [clubId], references: [id])
+
+  licenseNumber     String?
+  specialization    String?
+  yearsOfExperience Int?
+
+  registrationSource RegistrationSource @default(SELF)
+  registeredById     String?
+  registeredBy       User?              @relation("RegisteredCoaches", fields: [registeredById], references: [id])
+
+  status AthleteStatus @default(DRAFT)
+
+  faydaVerified   Boolean   @default(false)
+  faydaVerifiedAt DateTime?
+  faydaNin        String?   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  faydaVerifications FaydaVerification[]
+}
 
 model Role {
   id          String   @id @default(cuid())
@@ -153,7 +225,7 @@ model Permission {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  roles       RolePermission[]
+  roles RolePermission[]
 }
 
 model UserRole {
@@ -177,28 +249,45 @@ model RolePermission {
 }
 
 model AuditLog {
-  id String @id @default(cuid())
-
-  userId String
-
-  action String
-
-  entity String
-
-  entityId String?
-
-  oldValue Json?
-
-  newValue Json?
-
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
   ipAddress String?
-
   userAgent String?
-
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model FaydaVerification {
+  id         String                  @id @default(cuid())
+
+  athleteId  String?
+  athlete    Athlete?                @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  coachId    String?
+  coach      Coach?                  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  nin        String
+  otp        String
+  otpExpiresAt DateTime
+
+  status     FaydaVerificationStatus @default(PENDING)
+
+  verifiedData Json?
+
+  attempts   Int      @default(0)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([athleteId])
+  @@index([coachId])
 }

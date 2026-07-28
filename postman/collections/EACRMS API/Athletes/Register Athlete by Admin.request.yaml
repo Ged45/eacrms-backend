@@ -1,0 +1,34 @@
+$kind: http-request
+name: Register Athlete by Admin
+method: POST
+url: '{{baseUrl}}/api/v1/athletes/register/by-admin'
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Abebe",
+      "lastName": "Bikila",
+      "email": "abebe@example.com",
+      "password": "Password123",
+      "dateOfBirth": "1995-06-15",
+      "gender": "MALE",
+      "nationality": "Ethiopian"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.test("Athlete has id", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("id");
+      });

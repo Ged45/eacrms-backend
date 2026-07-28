@@ -1,0 +1,31 @@
+$kind: http-request
+name: Initiate Athlete Fayda Verification
+method: POST
+url: '{{baseUrl}}/api/v1/athletes/{{athleteId}}/fayda/initiate'
+order: 1000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nin": "ETH123456789"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200 or 201", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+      pm.test("Response has verificationId", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("verificationId");
+        pm.collectionVariables.set("verificationId", json.verificationId);
+      });

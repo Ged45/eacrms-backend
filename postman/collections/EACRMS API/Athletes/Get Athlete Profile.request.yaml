@@ -1,0 +1,21 @@
+$kind: http-request
+name: Get Athlete Profile
+method: GET
+url: '{{baseUrl}}/api/v1/athletes/profile'
+order: 3000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Profile has athlete fields", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("id");
+        pm.expect(json).to.have.property("firstName");
+        pm.expect(json).to.have.property("lastName");
+      });

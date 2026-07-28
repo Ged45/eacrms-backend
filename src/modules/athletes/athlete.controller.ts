@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 
 import { athleteService } from "./athlete.service";
 import { asyncHandler } from "../../middleware/asyncHandler";
-import  { CreateAthleteDTO } from "./dto/create-athlete.dto";
+import { AthleteStatus } from "@prisma/client";
+import { CreateAthleteDTO } from "./dto/create-athlete.dto";
 
 export class AthleteController {
   /**
@@ -14,6 +15,22 @@ export class AthleteController {
       req.body,
       req
     );
+
+    return res.status(201).json({
+      success: true,
+      message: result.message,
+      data: result.athlete,
+    });
+  });
+
+  /**
+   * Club Admin Registers an Athlete
+   * POST /api/v1/athletes/register/by-admin
+   */
+  registerByClubAdmin = asyncHandler(async (req: Request, res: Response) => {
+    const result = await athleteService.register(req.body, req, {
+      registeredById: req.user.userId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -82,7 +99,7 @@ export class AthleteController {
    */
   findByStatus = asyncHandler(async (req: Request, res: Response) => {
     const athletes = await athleteService.findByStatus(
-      req.params.status as any
+      req.params.status as AthleteStatus
     );
 
     return res.status(200).json({

@@ -1,0 +1,17 @@
+$kind: http-request
+name: Delete Club
+method: DELETE
+url: '{{baseUrl}}/api/v1/clubs/{{clubId}}'
+order: 9000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200 or 204", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 204]);
+      });

@@ -1,0 +1,19 @@
+$kind: http-request
+name: Get Coach by ID
+method: GET
+url: '{{baseUrl}}/api/v1/coaches/{{coachId}}'
+order: 7000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Coach id matches", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("id");
+      });

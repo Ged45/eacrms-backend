@@ -1,0 +1,32 @@
+$kind: http-request
+name: Register Coach (Self)
+method: POST
+url: '{{baseUrl}}/api/v1/coaches/register'
+order: 1000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Haile",
+      "lastName": "Gebrselassie",
+      "email": "haile@example.com",
+      "password": "Password123",
+      "licenseNumber": "COACH-001",
+      "specialization": "Long Distance",
+      "yearsOfExperience": 10
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.test("Coach has id", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("id");
+        pm.collectionVariables.set("coachId", json.id);
+      });

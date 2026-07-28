@@ -18,6 +18,15 @@ const router = Router();
 |--------------------------------------------------------------------------
 */
 
+// Club admin registers an athlete
+router.post(
+    "/register/by-admin",
+    authenticate,
+    authorize("athlete:create"),
+    validate(createAthleteSchema),
+    athleteController.registerByClubAdmin
+);
+
 router.post(
     "/register",
     validate(createAthleteSchema),

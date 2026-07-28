@@ -1,5 +1,6 @@
 import { Request } from "express";
 import bcrypt from "bcrypt";
+import { RegistrationSource, AthleteStatus } from "@prisma/client";
 
 import { athleteRepository } from "./athlete.repository";
 import { CreateAthleteDTO } from "./dto/create-athlete.dto";
@@ -10,17 +11,7 @@ import { AuditActions } from "../../constants/audit-actions";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
 
-/**
- * Temporary placeholder.
- * Replace this with the real Fayda service later.
- */
-const faydaService = {
-  async startVerification(data: { athleteId: string }) {
-    console.log(
-      `Starting Fayda verification for athlete ${data.athleteId}`
-    );
-  },
-};
+
 
 export class AthleteService {
   /**
@@ -28,7 +19,8 @@ export class AthleteService {
    */
   async register(
     data: CreateAthleteDTO,
-    request: Request
+    request: Request,
+    options?: { registeredById?: string }
   ) {
     /**
      * Check duplicate email
@@ -88,10 +80,17 @@ export class AthleteService {
     /**
      * Save athlete
      */
+    const registeredById = options?.registeredById;
+    const registrationSource: RegistrationSource = registeredById
+      ? RegistrationSource.CLUB_ADMIN
+      : RegistrationSource.SELF;
+
     const athlete =
       await athleteRepository.register({
         ...data,
         password: hashedPassword,
+        registrationSource,
+        registeredById,
       });
 
     /**
@@ -118,12 +117,7 @@ export class AthleteService {
       },
     });
 
-    /**
-     * Start Fayda verification
-     */
-    await faydaService.startVerification({
-      athleteId: athlete.id,
-    });
+    // Fayda verification is initiated separately via POST /athletes/:athleteId/fayda/initiate
 
     /**
      * Never return password
@@ -237,7 +231,7 @@ export class AthleteService {
   /**
    * Get athletes by status
    */
-  async findByStatus(status: any) {
+  async findByStatus(status: AthleteStatus) {
     const athletes =
       await athleteRepository.findByStatus(
         status

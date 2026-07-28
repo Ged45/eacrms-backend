@@ -1,0 +1,34 @@
+$kind: http-request
+name: Register Club
+method: POST
+url: '{{baseUrl}}/api/v1/clubs/register'
+order: 1000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test Sports Club",
+      "shortName": "TSC",
+      "email": "club@example.com",
+      "phone": "+251911000001",
+      "address": "Addis Ababa",
+      "city": "Addis Ababa",
+      "region": "Addis Ababa",
+      "licenseNumber": "LIC-001"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.test("Club has id and name", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("id");
+        pm.expect(json).to.have.property("name");
+        pm.collectionVariables.set("clubId", json.id);
+      });

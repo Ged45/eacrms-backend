@@ -1,0 +1,19 @@
+$kind: collection
+name: EACRMS API
+variables:
+  - key: baseUrl
+    value: 'http://localhost:5000'
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: clubId
+    value: ''
+  - key: athleteId
+    value: ''
+  - key: coachId
+    value: ''
+  - key: verificationId
+    value: ''
+  - key: status
+    value: 'PENDING'
