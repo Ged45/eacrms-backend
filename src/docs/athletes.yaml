@@ -1,0 +1,332 @@
+/athletes/register:
+  post:
+    tags: [Athletes]
+    summary: Self-register as an athlete
+    description: Public endpoint. Creates a user + athlete profile. Status starts as DRAFT.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AthleteRequest'
+    responses:
+      '201':
+        description: Athlete registered successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Athlete registered successfully. }
+                data:
+                  $ref: '#/components/schemas/AthleteProfile'
+      '400':
+        description: Validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationError'
+      '409':
+        description: Email already exists
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/athletes/register/by-admin:
+  post:
+    tags: [Athletes]
+    summary: Club admin registers an athlete
+    description: Requires athlete:create permission. Status starts as PENDING. Sets registrationSource to CLUB_ADMIN.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AthleteRequest'
+    responses:
+      '201':
+        description: Athlete registered by admin
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Athlete registered successfully. }
+                data:
+                  $ref: '#/components/schemas/AthleteProfile'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '403':
+        description: Forbidden — missing athlete:create permission
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/athletes/profile:
+  get:
+    tags: [Athletes]
+    summary: Get my athlete profile
+    description: Returns the athlete profile of the currently authenticated user.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Athlete profile
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/AthleteProfile'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '404':
+        description: Athlete profile not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/athletes:
+  get:
+    tags: [Athletes]
+    summary: List all athletes
+    description: Requires athlete:view permission.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: List of athletes
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AthleteProfile'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/athletes/search:
+  get:
+    tags: [Athletes]
+    summary: Search athletes
+    description: Search by name or email. Requires athlete:view permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search term (first name, last name, or email)
+        example: Abebe
+    responses:
+      '200':
+        description: Matching athletes
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AthleteProfile'
+
+/athletes/status/{status}:
+  get:
+    tags: [Athletes]
+    summary: Get athletes by status
+    description: Requires athlete:view permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: status
+        required: true
+        schema:
+          type: string
+          enum: [DRAFT, PENDING, FAYDA_VERIFIED, APPROVED, ACTIVE, SUSPENDED, REJECTED]
+        example: PENDING
+    responses:
+      '200':
+        description: Athletes with the given status
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AthleteProfile'
+
+/athletes/{id}:
+  get:
+    tags: [Athletes]
+    summary: Get athlete by ID
+    description: Requires athlete:view permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Athlete profile
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/AthleteProfile'
+      '404':
+        description: Athlete not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  delete:
+    tags: [Athletes]
+    summary: Delete athlete
+    description: Requires athlete:delete permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Athlete deleted
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Athlete deleted successfully. }
+      '404':
+        description: Athlete not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/athletes/{athleteId}/fayda/initiate:
+  post:
+    tags: [Fayda Verification]
+    summary: Initiate Fayda verification for an athlete
+    description: |
+      Submits the athlete's Fayda NIN to the eSignet gateway.
+      An OTP is sent to the phone number registered with that NIN.
+      In non-production, the OTP is also returned in the response.
+      Requires fayda:verify permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: athleteId
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FaydaInitiateRequest'
+    responses:
+      '200':
+        description: OTP sent
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaydaInitiateResponse'
+      '404':
+        description: Athlete not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '409':
+        description: Already verified or verification in progress
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/athletes/{athleteId}/fayda/status:
+  get:
+    tags: [Fayda Verification]
+    summary: Get Fayda verification status for an athlete
+    description: Returns the latest verification record for the athlete. Requires fayda:verify permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: athleteId
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Verification record
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/FaydaVerificationRecord'
+      '404':
+        description: No verification record found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'

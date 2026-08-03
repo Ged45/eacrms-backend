@@ -1,0 +1,253 @@
+/clubs/register:
+  post:
+    tags: [Clubs]
+    summary: Register a new club
+    description: Public endpoint. Club starts with verificationStatus PENDING.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClubRequest'
+    responses:
+      '201':
+        description: Club registration submitted
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Club registration submitted successfully. }
+                data:
+                  $ref: '#/components/schemas/ClubProfile'
+      '400':
+        description: Validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationError'
+
+/clubs:
+  get:
+    tags: [Clubs]
+    summary: List all clubs
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: All clubs
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                count: { type: integer }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClubProfile'
+
+/clubs/verified:
+  get:
+    tags: [Clubs]
+    summary: List verified clubs
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Verified clubs
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                count: { type: integer }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClubProfile'
+
+/clubs/pending:
+  get:
+    tags: [Clubs]
+    summary: List pending clubs
+    description: Requires club:approve permission.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Pending clubs
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                count: { type: integer }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClubProfile'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/clubs/{id}:
+  get:
+    tags: [Clubs]
+    summary: Get club by ID
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Club profile
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/ClubProfile'
+      '404':
+        description: Club not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  delete:
+    tags: [Clubs]
+    summary: Delete club
+    description: Requires club:delete permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Club deleted
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Club deleted successfully. }
+
+/clubs/{id}/approve:
+  patch:
+    tags: [Clubs]
+    summary: Approve a club
+    description: Requires club:approve permission. Sets verificationStatus to VERIFIED.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Club approved
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Club approved successfully. }
+                data:
+                  $ref: '#/components/schemas/ClubProfile'
+      '404':
+        description: Club not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/clubs/{id}/reject:
+  patch:
+    tags: [Clubs]
+    summary: Reject a club
+    description: Requires club:approve permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [reason]
+            properties:
+              reason:
+                type: string
+                minLength: 5
+                example: Incomplete documentation submitted.
+    responses:
+      '200':
+        description: Club rejected
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Club rejected successfully. }
+                data:
+                  $ref: '#/components/schemas/ClubProfile'
+
+/clubs/{id}/suspend:
+  patch:
+    tags: [Clubs]
+    summary: Suspend a club
+    description: Requires club:approve permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Club suspended
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Club suspended successfully. }
+                data:
+                  $ref: '#/components/schemas/ClubProfile'

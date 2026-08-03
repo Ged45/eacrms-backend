@@ -1,0 +1,82 @@
+/fayda/verify/{verificationId}/confirm:
+  post:
+    tags: [Fayda Verification]
+    summary: Confirm OTP
+    description: |
+      Submits the 6-digit OTP received by the athlete or coach.
+      On success, sets faydaVerified=true and advances status to FAYDA_VERIFIED.
+      Maximum 5 attempts. OTP expires after 10 minutes.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: verificationId
+        required: true
+        schema:
+          type: string
+        description: The verificationId returned from the initiate endpoint
+        example: clxyz123
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FaydaConfirmRequest'
+    responses:
+      '200':
+        description: Verification successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: Fayda verification successful. Athlete status updated to FAYDA_VERIFIED.
+                    demographicData:
+                      type: object
+                      properties:
+                        nin:         { type: string, example: ETH-19950810-001 }
+                        firstName:   { type: string, example: Fayda }
+                        lastName:    { type: string, example: Verified }
+                        dateOfBirth: { type: string, example: '1995-01-01' }
+                        gender:      { type: string, example: MALE }
+                        phoneNumber: { type: string, example: '+251911000000' }
+      '400':
+        description: Wrong OTP, expired, or max attempts exceeded
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+            examples:
+              wrongOtp:
+                summary: Wrong OTP
+                value:
+                  success: false
+                  message: Incorrect OTP. 4 attempts remaining.
+              expired:
+                summary: Expired
+                value:
+                  success: false
+                  message: OTP has expired. Please initiate a new verification.
+              maxAttempts:
+                summary: Max attempts
+                value:
+                  success: false
+                  message: Maximum OTP attempts exceeded.
+      '404':
+        description: Verification record not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '409':
+        description: Already confirmed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'

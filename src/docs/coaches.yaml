@@ -1,0 +1,295 @@
+/coaches/register:
+  post:
+    tags: [Coaches]
+    summary: Self-register as a coach
+    description: Public endpoint. Creates a user + coach profile. Status starts as DRAFT.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CoachRequest'
+    responses:
+      '201':
+        description: Coach registered successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Coach registered successfully. }
+                data:
+                  $ref: '#/components/schemas/CoachProfile'
+      '400':
+        description: Validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationError'
+      '409':
+        description: Email already exists
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/coaches/register/by-admin:
+  post:
+    tags: [Coaches]
+    summary: Club admin registers a coach
+    description: Requires coach:create permission. Status starts as PENDING.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CoachRequest'
+    responses:
+      '201':
+        description: Coach registered by admin
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Coach registered successfully. }
+                data:
+                  $ref: '#/components/schemas/CoachProfile'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/coaches/profile:
+  get:
+    tags: [Coaches]
+    summary: Get my coach profile
+    description: Returns the coach profile of the currently authenticated user.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Coach profile
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/CoachProfile'
+      '404':
+        description: Coach profile not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/coaches:
+  get:
+    tags: [Coaches]
+    summary: List all coaches
+    description: Requires coach:view permission.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: List of coaches
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CoachProfile'
+
+/coaches/status/{status}:
+  get:
+    tags: [Coaches]
+    summary: Get coaches by status
+    description: Requires coach:view permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: status
+        required: true
+        schema:
+          type: string
+          enum: [DRAFT, PENDING, FAYDA_VERIFIED, APPROVED, ACTIVE, SUSPENDED, REJECTED]
+        example: PENDING
+    responses:
+      '200':
+        description: Coaches with the given status
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CoachProfile'
+
+/coaches/club/{clubId}:
+  get:
+    tags: [Coaches]
+    summary: Get coaches by club
+    description: Requires coach:view permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: clubId
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Coaches in the given club
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CoachProfile'
+
+/coaches/{id}:
+  get:
+    tags: [Coaches]
+    summary: Get coach by ID
+    description: Requires coach:view permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Coach profile
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/CoachProfile'
+      '404':
+        description: Coach not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  delete:
+    tags: [Coaches]
+    summary: Delete coach
+    description: Requires coach:delete permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Coach deleted
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Coach deleted successfully. }
+
+/coaches/{coachId}/fayda/initiate:
+  post:
+    tags: [Fayda Verification]
+    summary: Initiate Fayda verification for a coach
+    description: |
+      Submits the coach's Fayda NIN. An OTP is sent to their registered phone.
+      In non-production, OTP is returned in the response.
+      Requires fayda:verify permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: coachId
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FaydaInitiateRequest'
+    responses:
+      '200':
+        description: OTP sent
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaydaInitiateResponse'
+      '404':
+        description: Coach not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/coaches/{coachId}/fayda/status:
+  get:
+    tags: [Fayda Verification]
+    summary: Get Fayda verification status for a coach
+    description: Requires fayda:verify permission.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: coachId
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+    responses:
+      '200':
+        description: Verification record
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/FaydaVerificationRecord'

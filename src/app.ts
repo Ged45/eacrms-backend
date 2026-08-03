@@ -1,14 +1,34 @@
 import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
+import swaggerUi from "swagger-ui-express";
 
 import router from "./routes";
 import { AppError } from "./errors/AppError";
+import { swaggerSpec } from "./docs/swagger";
 
 const app = express();
 
 app.use(express.json());
 
 app.use("/api/v1", router);
+
+// Swagger UI
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: "EACRMS API Docs",
+        swaggerOptions: {
+            persistAuthorization: true,
+        },
+    })
+);
+
+// Expose raw OpenAPI JSON
+app.get("/api-docs.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerSpec);
+});
 
 app.get("/", (_req, res) => {
     res.json({
