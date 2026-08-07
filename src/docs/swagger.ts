@@ -522,61 +522,7 @@ const options: swaggerJsdoc.Options = {
                         properties: {
                           message:       { type: "string", example: "Phone number verified successfully." },
                           accountActive: { type: "boolean", example: true },
-            // ── Payments ───────────────────────────────────────────────────────────
-            "/payments/mock/webhook": {
-              post: {
-                tags: ["Payments"],
-                summary: "Process a mock payment webhook",
-                description: "Internal/testing endpoint for mock payment provider callbacks. Accepts `reference`, `status` (PAID|FAILED) and `transactionId`. Uses a shared header `x-mock-payment-secret` for verification.",
-                security: [],
-                requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/MockWebhookRequest" } } } },
-                responses: {
-                  200: { description: "Webhook processed", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
-                  400: { description: "Invalid payload or payment already finalized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                  403: { description: "Invalid webhook secret", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                  404: { description: "Payment not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                },
-              },
-            },
-            "/payments/history": {
-              get: {
-                tags: ["Payments"],
-                summary: "Get payment history for current user",
-                description: "Returns the authenticated user's payments ordered by createdAt desc.",
-                responses: {
-                  200: { description: "Payment history", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Payment" } } } } } } },
-                  401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                },
-              },
-            },
-            "/payments/{paymentId}/status": {
-              get: {
-                tags: ["Payments"],
-                summary: "Get payment status",
-                parameters: [{ in: "path", name: "paymentId", required: true, schema: { type: "string" } }],
-                responses: {
-                  200: { description: "Payment status", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
-                  401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                  404: { description: "Payment not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                },
-              },
-            },
-            "/events/{eventId}/registrations": {
-              post: {
-                tags: ["Payments"],
-                summary: "Create an event registration and associated payment",
-                description: "Registers an athlete for an event and creates a payment record. Returns a `mockCheckout` object for test providers.",
-                parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
-                requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateEventRegistration" } } } },
-                responses: {
-                  201: { description: "Registration created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { registration: { type: "object" }, payment: { $ref: "#/components/schemas/Payment" }, mockCheckout: { $ref: "#/components/schemas/MockCheckout" } } } } } } } },
-                  400: { description: "Validation failed or event not published", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                  401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                  403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                  404: { description: "Event or athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-                },
-              },
-            },
+            
                           note:          { type: "string", example: "Your account is now active. You can log in." },
                         },
                       },
@@ -687,6 +633,61 @@ const options: swaggerJsdoc.Options = {
             200: { description: "Profile", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
             401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Payments ───────────────────────────────────────────────────────────
+      "/payments/mock/webhook": {
+        post: {
+          tags: ["Payments"],
+          summary: "Process a mock payment webhook",
+          description: "Internal/testing endpoint for mock payment provider callbacks. Accepts `reference`, `status` (PAID|FAILED) and `transactionId`. Uses a shared header `x-mock-payment-secret` for verification.",
+          security: [],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/MockWebhookRequest" } } } },
+          responses: {
+            200: { description: "Webhook processed", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
+            400: { description: "Invalid payload or payment already finalized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Invalid webhook secret", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Payment not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/payments/history": {
+        get: {
+          tags: ["Payments"],
+          summary: "Get payment history for current user",
+          description: "Returns the authenticated user's payments ordered by createdAt desc.",
+          responses: {
+            200: { description: "Payment history", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Payment" } } } } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/payments/{paymentId}/status": {
+        get: {
+          tags: ["Payments"],
+          summary: "Get payment status",
+          parameters: [{ in: "path", name: "paymentId", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Payment status", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Payment not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/events/{eventId}/registrations": {
+        post: {
+          tags: ["Payments"],
+          summary: "Create an event registration and associated payment",
+          description: "Registers an athlete for an event and creates a payment record. Returns a `mockCheckout` object for test providers.",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateEventRegistration" } } } },
+          responses: {
+            201: { description: "Registration created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { registration: { type: "object" }, payment: { $ref: "#/components/schemas/Payment" }, mockCheckout: { $ref: "#/components/schemas/MockCheckout" } } } } } } } },
+            400: { description: "Validation failed or event not published", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Event or athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
