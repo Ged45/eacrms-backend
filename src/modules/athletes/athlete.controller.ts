@@ -108,6 +108,40 @@ export class AthleteController {
     });
   });
 
+  approve = asyncHandler(async (req: Request, res: Response) => {
+    const result = await athleteService.approve(
+      req.params.id as string,
+      req.user.userId
+    );
+    return res.status(200).json({ success: true, message: result.message, data: result.athlete });
+  });
+
+  reject = asyncHandler(async (req: Request, res: Response) => {
+    const result = await athleteService.reject(
+      req.params.id as string,
+      req.user.userId,
+      req.body.reason ?? "No reason provided."
+    );
+    return res.status(200).json({ success: true, message: result.message, data: result.athlete });
+  });
+
+  activate = asyncHandler(async (req: Request, res: Response) => {
+    const result = await athleteService.activate(
+      req.params.id as string,
+      req.user.userId
+    );
+    return res.status(200).json({ success: true, message: result.message, data: result.athlete });
+  });
+
+  suspend = asyncHandler(async (req: Request, res: Response) => {
+    const result = await athleteService.suspend(
+      req.params.id as string,
+      req.user.userId,
+      req.body.reason
+    );
+    return res.status(200).json({ success: true, message: result.message, data: result.athlete });
+  });
+
   /**
    * Delete Athlete
    * DELETE /api/v1/athletes/:id

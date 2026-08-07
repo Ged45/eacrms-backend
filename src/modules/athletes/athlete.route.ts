@@ -72,6 +72,34 @@ router.get(
     athleteController.findByStatus
 );
 
+router.patch(
+    "/:id/approve",
+    authenticate,
+    authorize("athlete:update"),
+    athleteController.approve
+);
+
+router.patch(
+    "/:id/reject",
+    authenticate,
+    authorize("athlete:update"),
+    athleteController.reject
+);
+
+router.patch(
+    "/:id/activate",
+    authenticate,
+    authorize("athlete:update"),
+    athleteController.activate
+);
+
+router.patch(
+    "/:id/suspend",
+    authenticate,
+    authorize("athlete:update"),
+    athleteController.suspend
+);
+
 router.get(
     "/:id",
     authenticate,

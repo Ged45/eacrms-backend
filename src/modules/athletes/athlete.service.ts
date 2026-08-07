@@ -10,6 +10,7 @@ import { AuditActions } from "../../constants/audit-actions";
 
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
+import { BadRequestError } from "../../errors/BadRequestError";
 
 
 
@@ -248,6 +249,111 @@ export class AthleteService {
         user,
       };
     });
+  }
+
+  /**
+   * Approve athlete — sets AthleteStatus to APPROVED and User to ACTIVE so they can login
+   */
+  async approve(id: string, adminId: string) {
+    const athlete = await athleteRepository.findById(id);
+    if (!athlete) throw new NotFoundError("Athlete not found.");
+
+    if (athlete.status === "APPROVED" || athlete.status === "ACTIVE") {
+      throw new BadRequestError("Athlete is already approved.");
+    }
+
+    if (athlete.status === "REJECTED") {
+      throw new BadRequestError("Cannot approve a rejected athlete.");
+    }
+
+    const updated = await athleteRepository.updateStatus(id, "APPROVED");
+    await athleteRepository.activateUser(athlete.userId);
+
+    await auditService.log({
+      userId: adminId,
+      action: AuditActions.APPROVE_ATHLETE,
+      entity: "Athlete",
+      entityId: id,
+      details: { previousStatus: athlete.status },
+    });
+
+    const { password, ...user } = updated.user;
+    return { message: "Athlete approved. Account is now active.", athlete: { ...updated, user } };
+  }
+
+  /**
+   * Reject athlete — sets AthleteStatus to REJECTED, User stays PENDING
+   */
+  async reject(id: string, adminId: string, reason: string) {
+    const athlete = await athleteRepository.findById(id);
+    if (!athlete) throw new NotFoundError("Athlete not found.");
+
+    if (athlete.status === "REJECTED") {
+      throw new BadRequestError("Athlete is already rejected.");
+    }
+
+    const updated = await athleteRepository.updateStatus(id, "REJECTED");
+
+    await auditService.log({
+      userId: adminId,
+      action: AuditActions.REJECT_ATHLETE,
+      entity: "Athlete",
+      entityId: id,
+      details: { reason, previousStatus: athlete.status },
+    });
+
+    const { password, ...user } = updated.user;
+    return { message: "Athlete rejected.", athlete: { ...updated, user } };
+  }
+
+  /**
+   * Set athlete status to ACTIVE (fully active member, after approval)
+   */
+  async activate(id: string, adminId: string) {
+    const athlete = await athleteRepository.findById(id);
+    if (!athlete) throw new NotFoundError("Athlete not found.");
+
+    if (athlete.status !== "APPROVED") {
+      throw new BadRequestError("Athlete must be APPROVED before being set to ACTIVE.");
+    }
+
+    const updated = await athleteRepository.updateStatus(id, "ACTIVE");
+
+    await auditService.log({
+      userId: adminId,
+      action: AuditActions.ACTIVATE_ATHLETE,
+      entity: "Athlete",
+      entityId: id,
+    });
+
+    const { password, ...user } = updated.user;
+    return { message: "Athlete is now ACTIVE.", athlete: { ...updated, user } };
+  }
+
+  /**
+   * Suspend athlete — sets AthleteStatus to SUSPENDED and deactivates User
+   */
+  async suspend(id: string, adminId: string, reason?: string) {
+    const athlete = await athleteRepository.findById(id);
+    if (!athlete) throw new NotFoundError("Athlete not found.");
+
+    if (athlete.status === "SUSPENDED") {
+      throw new BadRequestError("Athlete is already suspended.");
+    }
+
+    const updated = await athleteRepository.updateStatus(id, "SUSPENDED");
+    await athleteRepository.deactivateUser(athlete.userId);
+
+    await auditService.log({
+      userId: adminId,
+      action: AuditActions.SUSPEND_ATHLETE,
+      entity: "Athlete",
+      entityId: id,
+      details: { reason, previousStatus: athlete.status },
+    });
+
+    const { password, ...user } = updated.user;
+    return { message: "Athlete suspended.", athlete: { ...updated, user } };
   }
 
   /**

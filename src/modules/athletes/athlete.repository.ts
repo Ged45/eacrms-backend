@@ -262,6 +262,28 @@ export class AthleteRepository {
     });
   }
 
+  async updateStatus(id: string, status: AthleteStatus) {
+    return prisma.athlete.update({
+      where: { id },
+      data: { status },
+      include: { user: true, sport: true, club: true },
+    });
+  }
+
+  async activateUser(userId: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { status: "ACTIVE" },
+    });
+  }
+
+  async deactivateUser(userId: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { status: "PENDING" },
+    });
+  }
+
   /**
    * Check whether email already exists
    */

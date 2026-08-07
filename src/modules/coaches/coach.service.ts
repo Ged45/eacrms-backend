@@ -7,6 +7,7 @@ import { auditService } from "../audit/audit.service";
 import { AuditActions } from "../../constants/audit-actions";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
+import { BadRequestError } from "../../errors/BadRequestError";
 import { AthleteStatus, RegistrationSource } from "@prisma/client";
 
 export class CoachService {
@@ -99,6 +100,61 @@ export class CoachService {
       const { password, ...user } = c.user;
       return { ...c, user };
     });
+  }
+
+  async approve(id: string, adminId: string) {
+    const coach = await coachRepository.findById(id);
+    if (!coach) throw new NotFoundError("Coach not found.");
+    if (coach.status === "APPROVED" || coach.status === "ACTIVE") throw new BadRequestError("Coach is already approved.");
+    if (coach.status === "REJECTED") throw new BadRequestError("Cannot approve a rejected coach.");
+
+    const updated = await coachRepository.updateStatus(id, "APPROVED");
+    await coachRepository.activateUser(coach.userId);
+
+    await auditService.log({ userId: adminId, action: AuditActions.APPROVE_COACH, entity: "Coach", entityId: id, details: { previousStatus: coach.status } });
+
+    const { password, ...user } = updated.user;
+    return { message: "Coach approved. Account is now active.", coach: { ...updated, user } };
+  }
+
+  async reject(id: string, adminId: string, reason: string) {
+    const coach = await coachRepository.findById(id);
+    if (!coach) throw new NotFoundError("Coach not found.");
+    if (coach.status === "REJECTED") throw new BadRequestError("Coach is already rejected.");
+
+    const updated = await coachRepository.updateStatus(id, "REJECTED");
+
+    await auditService.log({ userId: adminId, action: AuditActions.REJECT_COACH, entity: "Coach", entityId: id, details: { reason, previousStatus: coach.status } });
+
+    const { password, ...user } = updated.user;
+    return { message: "Coach rejected.", coach: { ...updated, user } };
+  }
+
+  async activate(id: string, adminId: string) {
+    const coach = await coachRepository.findById(id);
+    if (!coach) throw new NotFoundError("Coach not found.");
+    if (coach.status !== "APPROVED") throw new BadRequestError("Coach must be APPROVED before being set to ACTIVE.");
+
+    const updated = await coachRepository.updateStatus(id, "ACTIVE");
+
+    await auditService.log({ userId: adminId, action: AuditActions.ACTIVATE_COACH, entity: "Coach", entityId: id });
+
+    const { password, ...user } = updated.user;
+    return { message: "Coach is now ACTIVE.", coach: { ...updated, user } };
+  }
+
+  async suspend(id: string, adminId: string, reason?: string) {
+    const coach = await coachRepository.findById(id);
+    if (!coach) throw new NotFoundError("Coach not found.");
+    if (coach.status === "SUSPENDED") throw new BadRequestError("Coach is already suspended.");
+
+    const updated = await coachRepository.updateStatus(id, "SUSPENDED");
+    await coachRepository.deactivateUser(coach.userId);
+
+    await auditService.log({ userId: adminId, action: AuditActions.SUSPEND_COACH, entity: "Coach", entityId: id, details: { reason, previousStatus: coach.status } });
+
+    const { password, ...user } = updated.user;
+    return { message: "Coach suspended.", coach: { ...updated, user } };
   }
 
   async delete(id: string) {

@@ -4,6 +4,7 @@ import { UserStatus } from "@prisma/client";
 
 import { authRepository } from "./auth.repository";
 import { auditService } from "../audit/audit.service";
+import { verificationService } from "../verification/verification.service";
 
 import { RegisterDTO, LoginDTO } from "./auth.types";
 
@@ -55,6 +56,11 @@ export const authService = {
       userAgent: metadata?.userAgent,
     });
 
+    const verification = await verificationService.initiateEmailVerification(
+      user.id,
+      user.email
+    );
+
     return {
       id: user.id,
       email: user.email,
@@ -63,6 +69,7 @@ export const authService = {
       phoneNumber: user.phoneNumber,
       status: user.status,
       createdAt: user.createdAt,
+      verification,
     };
   },
 
@@ -93,7 +100,11 @@ export const authService = {
     }
 
     if (user.status !== UserStatus.ACTIVE) {
-      throw new Error("Your account is not active.");
+      throw new Error(
+        "Your account is not active. Please verify your email" +
+        (user.phoneNumber ? " and phone number" : "") +
+        " to activate your account."
+      );
     }
 
     const payload = {

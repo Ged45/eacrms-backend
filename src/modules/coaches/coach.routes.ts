@@ -26,6 +26,10 @@ router.get("/profile", authenticate, coachController.getProfile);
 router.get("/",               authenticate, authorize("coach:view"),   coachController.findAll);
 router.get("/status/:status", authenticate, authorize("coach:view"),   coachController.findByStatus);
 router.get("/club/:clubId",   authenticate, authorize("coach:view"),   coachController.findByClub);
+router.patch("/:id/approve",  authenticate, authorize("coach:update"), coachController.approve);
+router.patch("/:id/reject",   authenticate, authorize("coach:update"), coachController.reject);
+router.patch("/:id/activate", authenticate, authorize("coach:update"), coachController.activate);
+router.patch("/:id/suspend",  authenticate, authorize("coach:update"), coachController.suspend);
 router.get("/:id",            authenticate, authorize("coach:view"),   coachController.getById);
 router.delete("/:id",         authenticate, authorize("coach:delete"), coachController.delete);
 

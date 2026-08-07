@@ -66,6 +66,17 @@ enum UserStatus {
   DELETED
 }
 
+enum VerificationType {
+  EMAIL
+  PHONE
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+}
+
 enum FaydaVerificationStatus {
   PENDING
   OTP_SENT
@@ -89,6 +100,11 @@ model User {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  emailVerified   Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  phoneVerified   Boolean   @default(false)
+  phoneVerifiedAt DateTime?
+
   roles              UserRole[]
   auditLogs          AuditLog[]
   athlete            Athlete?
@@ -96,6 +112,7 @@ model User {
   coaches            Coach[]
   registeredCoaches  Coach[]   @relation("RegisteredCoaches")
   verifiedClubs      Club[]    @relation("VerifiedClubs")
+  verifications      UserVerification[]
 }
 
 model Sport {
@@ -290,4 +307,19 @@ model FaydaVerification {
 
   @@index([athleteId])
   @@index([coachId])
+}
+
+model UserVerification {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerificationType
+  code      String
+  expiresAt DateTime
+  status    VerificationStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([code])
 }

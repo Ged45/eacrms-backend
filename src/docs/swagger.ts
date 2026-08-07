@@ -322,6 +322,193 @@ const options: swaggerJsdoc.Options = {
         },
       },
 
+      "/auth/verify/email": {
+        post: {
+          tags: ["Verification"],
+          summary: "Verify email address",
+          description: "Submit the 6-digit code sent to your email after registration. Public endpoint — no token needed.",
+          security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["email", "code"],
+                  properties: {
+                    email: { type: "string", format: "email", example: "abebe@example.com" },
+                    code:  { type: "string", minLength: 6, maxLength: 6, example: "483921" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Email verified. accountActive=true means you can now log in.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          message:       { type: "string", example: "Email verified successfully." },
+                          accountActive: { type: "boolean", example: true },
+                          note:          { type: "string", example: "Your account is now active. You can log in." },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Invalid or expired code", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            409: { description: "Already verified", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/auth/verify/phone/request": {
+        post: {
+          tags: ["Verification"],
+          summary: "Request phone OTP",
+          description: "Sends a 6-digit OTP to the phone number on the account. Email must be verified first. Requires a valid token (even though the account is not yet ACTIVE — the token from the login attempt is not available yet, so use the token from a future partial-auth flow, or use userId via a temporary token issued at registration).",
+          responses: {
+            200: {
+              description: "OTP sent",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          message: { type: "string", example: "OTP sent to 0911000001. Valid for 10 minutes." },
+                          otp:     { type: "string", example: "391847", description: "Only shown outside production" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "No phone number or email not verified yet", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            409: { description: "Phone already verified", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/auth/verify/phone": {
+        post: {
+          tags: ["Verification"],
+          summary: "Verify phone number",
+          description: "Submit the 6-digit OTP received on your phone.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["otp"],
+                  properties: {
+                    otp: { type: "string", minLength: 6, maxLength: 6, example: "391847" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Phone verified. If email was already verified, account becomes ACTIVE.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          message:       { type: "string", example: "Phone number verified successfully." },
+                          accountActive: { type: "boolean", example: true },
+                          note:          { type: "string", example: "Your account is now active. You can log in." },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Invalid or expired OTP", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            409: { description: "Already verified", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/auth/verify/resend": {
+        post: {
+          tags: ["Verification"],
+          summary: "Resend verification code",
+          description: "Resend the email code or phone OTP. Previous codes are invalidated.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["type"],
+                  properties: {
+                    type: { type: "string", enum: ["EMAIL", "PHONE"], example: "EMAIL" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Code resent", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object" } } } } } },
+            409: { description: "Already verified", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/auth/verify/status": {
+        get: {
+          tags: ["Verification"],
+          summary: "Get verification status",
+          description: "Returns email/phone verification status and whether the account is active.",
+          responses: {
+            200: {
+              description: "Verification status",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          email:           { type: "string", example: "abebe@example.com" },
+                          emailVerified:   { type: "boolean", example: false },
+                          emailVerifiedAt: { type: "string", format: "date-time", nullable: true },
+                          hasPhone:        { type: "boolean", example: true },
+                          phoneVerified:   { type: "boolean", example: false },
+                          phoneVerifiedAt: { type: "string", format: "date-time", nullable: true },
+                          accountStatus:   { type: "string", enum: ["PENDING", "ACTIVE", "SUSPENDED", "DELETED"] },
+                          canLogin:        { type: "boolean", example: false },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
       // ── Athletes ─────────────────────────────────────────────────────────────
       "/athletes/register": {
         post: {
@@ -417,6 +604,60 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+      "/athletes/{id}/approve": {
+        patch: {
+          tags: ["Athletes"],
+          summary: "Approve athlete",
+          description: "Sets `AthleteStatus` to `APPROVED` and `UserStatus` to `ACTIVE` so the athlete can log in. Requires `athlete:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete approved. Account is now active." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            400: { description: "Already approved or rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/athletes/{id}/reject": {
+        patch: {
+          tags: ["Athletes"],
+          summary: "Reject athlete",
+          description: "Sets `AthleteStatus` to `REJECTED`. User remains `PENDING` and cannot log in. Requires `athlete:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Incomplete documentation submitted." } } } } } },
+          responses: {
+            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete rejected." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            400: { description: "Already rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/athletes/{id}/activate": {
+        patch: {
+          tags: ["Athletes"],
+          summary: "Set athlete to ACTIVE",
+          description: "Athlete must be `APPROVED` first. Sets `AthleteStatus` to `ACTIVE` (fully active member). Requires `athlete:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "Activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete is now ACTIVE." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            400: { description: "Not yet approved", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/athletes/{id}/suspend": {
+        patch: {
+          tags: ["Athletes"],
+          summary: "Suspend athlete",
+          description: "Sets `AthleteStatus` to `SUSPENDED` and `UserStatus` to `PENDING`, blocking login. Requires `athlete:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Violation of conduct policy." } } } } } },
+          responses: {
+            200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete suspended." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            400: { description: "Already suspended", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
 
       // ── Coaches ──────────────────────────────────────────────────────────────
       "/coaches/register": {
@@ -507,6 +748,113 @@ const options: swaggerJsdoc.Options = {
           responses: {
             200: { description: "Deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/coaches/{id}/approve": {
+        patch: {
+          tags: ["Coaches"],
+          summary: "Approve coach",
+          description: "Sets `CoachStatus` to `APPROVED` and `UserStatus` to `ACTIVE` so the coach can log in. Requires `coach:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach approved. Account is now active." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            400: { description: "Already approved or rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/coaches/{id}/reject": {
+        patch: {
+          tags: ["Coaches"],
+          summary: "Reject coach",
+          description: "Sets coach status to `REJECTED`. User remains `PENDING`. Requires `coach:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Incomplete documentation submitted." } } } } } },
+          responses: {
+            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach rejected." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            400: { description: "Already rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/coaches/{id}/activate": {
+        patch: {
+          tags: ["Coaches"],
+          summary: "Set coach to ACTIVE",
+          description: "Coach must be `APPROVED` first. Sets status to `ACTIVE`. Requires `coach:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "Activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach is now ACTIVE." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            400: { description: "Not yet approved", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/coaches/{id}/suspend": {
+        patch: {
+          tags: ["Coaches"],
+          summary: "Suspend coach",
+          description: "Sets status to `SUSPENDED` and blocks login. Requires `coach:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Violation of conduct policy." } } } } } },
+          responses: {
+            200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach suspended." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            400: { description: "Already suspended", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+
+      // ── Users ────────────────────────────────────────────────────────────────
+      "/users": {
+        get: {
+          tags: ["Users"],
+          summary: "List all users",
+          description: "Returns all users with their roles. Requires `user:view` permission.",
+          responses: {
+            200: { description: "Users list", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { allOf: [{ $ref: "#/components/schemas/UserPublic" }, { type: "object", properties: { roles: { type: "array", items: { type: "string" }, example: ["ATHLETE"] } } }] } } } } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/users/{id}/activate": {
+        patch: {
+          tags: ["Users"],
+          summary: "Activate user account",
+          description: "Directly sets `UserStatus` to `ACTIVE`, allowing the user to log in. Use this when you need to grant access independently of the athlete/coach approval flow. Requires `user:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "Account activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "User account activated." }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
+            400: { description: "Already active", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/users/{id}": {
+        delete: {
+          tags: ["Users"],
+          summary: "Permanently delete a user",
+          description: "Deletes the user and all related data (athlete/coach profile, audit logs, verifications) via database CASCADE. Cannot delete your own account. Requires `user:delete` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "User deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "User abebe@example.com has been permanently deleted." } } } } } },
+            400: { description: "Cannot delete own account", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/users/{id}/deactivate": {
+        patch: {
+          tags: ["Users"],
+          summary: "Deactivate user account",
+          description: "Sets `UserStatus` to `SUSPENDED`, blocking login immediately. Requires `user:update` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "Account deactivated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "User account deactivated." }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
+            400: { description: "Not active", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

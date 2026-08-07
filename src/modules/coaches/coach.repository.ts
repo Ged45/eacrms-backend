@@ -88,6 +88,28 @@ export class CoachRepository {
     return prisma.coach.delete({ where: { id } });
   }
 
+  async updateStatus(id: string, status: AthleteStatus) {
+    return prisma.coach.update({
+      where: { id },
+      data: { status },
+      include: { user: true, sport: true, club: true },
+    });
+  }
+
+  async activateUser(userId: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { status: "ACTIVE" },
+    });
+  }
+
+  async deactivateUser(userId: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { status: "PENDING" },
+    });
+  }
+
   async emailExists(email: string) {
     return prisma.user.findUnique({ where: { email }, select: { id: true } });
   }

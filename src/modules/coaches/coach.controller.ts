@@ -42,6 +42,26 @@ export class CoachController {
     return res.status(200).json({ success: true, data: coaches });
   });
 
+  approve = asyncHandler(async (req: Request, res: Response) => {
+    const result = await coachService.approve(req.params.id as string, req.user.userId);
+    return res.status(200).json({ success: true, message: result.message, data: result.coach });
+  });
+
+  reject = asyncHandler(async (req: Request, res: Response) => {
+    const result = await coachService.reject(req.params.id as string, req.user.userId, req.body.reason ?? "No reason provided.");
+    return res.status(200).json({ success: true, message: result.message, data: result.coach });
+  });
+
+  activate = asyncHandler(async (req: Request, res: Response) => {
+    const result = await coachService.activate(req.params.id as string, req.user.userId);
+    return res.status(200).json({ success: true, message: result.message, data: result.coach });
+  });
+
+  suspend = asyncHandler(async (req: Request, res: Response) => {
+    const result = await coachService.suspend(req.params.id as string, req.user.userId, req.body.reason);
+    return res.status(200).json({ success: true, message: result.message, data: result.coach });
+  });
+
   delete = asyncHandler(async (req: Request, res: Response) => {
     const result = await coachService.delete(req.params.id as string);
     return res.status(200).json({ success: true, message: result.message });
