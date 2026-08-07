@@ -94,6 +94,49 @@ const options: swaggerJsdoc.Options = {
           },
         },
 
+        // Events
+        EventRequest: {
+          type: "object",
+          required: ["title", "category", "rules", "schedule", "organizerName"],
+          properties: {
+            title: { type: "string", example: "National Athletics Championship" },
+            description: { type: "string", example: "Annual national track and field championship." },
+            category: { type: "string", example: "TRACK_AND_FIELD" },
+            rules: { type: "string", example: "World Athletics rules apply." },
+            schedule: { type: "array", minItems: 1, items: { type: "object", required: ["title", "startsAt", "endsAt"], properties: { title: { type: "string", example: "Opening ceremony" }, startsAt: { type: "string", format: "date-time", example: "2026-10-10T07:00:00.000Z" }, endsAt: { type: "string", format: "date-time", example: "2026-10-10T08:00:00.000Z" }, description: { type: "string" } } } },
+            venue: { type: "string", example: "Addis Ababa Stadium" },
+            organizerName: { type: "string", example: "Ethiopian Athletics Federation" },
+            organizerEmail: { type: "string", format: "email", example: "events@example.com" },
+            organizerPhone: { type: "string", example: "+251911000000" },
+          },
+        },
+        Event: {
+          allOf: [
+            { $ref: "#/components/schemas/EventRequest" },
+            { type: "object", properties: { id: { type: "string" }, status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, createdById: { type: "string" }, approvedById: { type: "string", nullable: true }, approvedAt: { type: "string", format: "date-time", nullable: true }, publishedAt: { type: "string", format: "date-time", nullable: true }, rejectionReason: { type: "string", nullable: true }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
+          ],
+        },
+
+        // Federation policies
+        PolicyRequest: {
+          type: "object",
+          required: ["code", "title", "scope", "rules"],
+          properties: {
+            code: { type: "string", example: "EVENT_AGE_LIMITS" },
+            title: { type: "string", example: "Youth event age limits" },
+            description: { type: "string" },
+            scope: { type: "string", enum: ["CLUB", "EVENT", "ATHLETE_PARTICIPATION"] },
+            status: { type: "string", enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
+            rules: { type: "object", example: { minimumAge: 14, maximumAge: 18, requiredPermissions: ["athlete:view"] }, additionalProperties: true },
+          },
+        },
+        Policy: {
+          allOf: [
+            { $ref: "#/components/schemas/PolicyRequest" },
+            { type: "object", properties: { id: { type: "string" }, createdById: { type: "string" }, updatedById: { type: "string" }, assignments: { type: "array", items: { type: "object" } }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
+          ],
+        },
+
         // Athlete
         AthleteRequest: {
           type: "object",
@@ -1011,6 +1054,152 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+      "/events/{eventId}/qr-tokens": {
+        post: {
+          tags: ["Event QR Check-in"],
+          summary: "Generate an attendee QR token",
+          description: "Requires `event:checkin`. The event must be published. The response's `qrData` is the value to encode in a QR image.",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["attendeeType", "attendeeId"], properties: { attendeeType: { type: "string", enum: ["ATHLETE", "CLUB"] }, attendeeId: { type: "string" }, expiresInMinutes: { type: "integer", default: 1440, maximum: 10080 } } } } } },
+          responses: { 201: { description: "QR token generated" }, 400: { description: "Event is not published or attendee already checked in" }, 404: { description: "Event or attendee not found" } },
+        },
+      },
+      "/events/{eventId}/check-ins/scan": {
+        post: {
+          tags: ["Event QR Check-in"],
+          summary: "Validate a QR token and check in an attendee",
+          description: "Requires `event:checkin`. Tokens are one-time; invalid, expired, reused, or cross-event tokens are rejected.",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["token"], properties: { token: { type: "string" } } } } } },
+          responses: { 200: { description: "Checked in" }, 400: { description: "Invalid, expired, or used QR token" } },
+        },
+      },
+      "/events/{eventId}/check-ins": {
+        get: {
+          tags: ["Event QR Check-in"],
+          summary: "List event check-ins",
+          description: "Requires `event:view` permission.",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "Check-ins" } },
+        },
+      },
+
+      "/policies": {
+        get: {
+          tags: ["Federation Policies"],
+          summary: "List all policies",
+          description: "Requires `policy:view` permission.",
+          responses: { 200: { description: "Policies", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Policy" } } } } } } } },
+        },
+        post: {
+          tags: ["Federation Policies"],
+          summary: "Create a policy",
+          description: "Requires `policy:create` permission.",
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PolicyRequest" } } } },
+          responses: { 201: { description: "Created" }, 400: { description: "Validation failed" } },
+        },
+      },
+      "/policies/relevant": {
+        get: {
+          tags: ["Federation Policies"],
+          summary: "Get policies relevant to the current user",
+          description: "Returns active policies assigned to the caller's club or created events. It does not expose unrelated policy rules.",
+          responses: { 200: { description: "Relevant policies" } },
+        },
+      },
+      "/policies/{id}": {
+        patch: {
+          tags: ["Federation Policies"],
+          summary: "Update a policy",
+          description: "Requires `policy:update`; each update is recorded in the policy audit log.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PolicyRequest" } } } },
+          responses: { 200: { description: "Updated" } },
+        },
+      },
+      "/policies/{id}/assignments": {
+        post: {
+          tags: ["Federation Policies"],
+          summary: "Assign a policy to a club or event",
+          description: "Requires `policy:update`. Exactly one target is required.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { clubId: { type: "string" }, eventId: { type: "string" } } } } } },
+          responses: { 201: { description: "Assigned" } },
+        },
+      },
+      "/policies/{id}/audit": {
+        get: {
+          tags: ["Federation Policies"],
+          summary: "Get policy change history",
+          description: "Requires `policy:view` permission.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "Audit history" } },
+        },
+      },
+
+      "/events": {
+        get: {
+          tags: ["Events"],
+          summary: "List all events",
+          description: "Requires `event:view` permission.",
+          responses: { 200: { description: "Events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
+        },
+        post: {
+          tags: ["Events"],
+          summary: "Create an event draft",
+          description: "Creates an event in `DRAFT`. Requires `event:create` permission; it cannot be published until federation approval.",
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/EventRequest" } } } },
+          responses: { 201: { description: "Draft created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } } },
+        },
+      },
+      "/events/published": {
+        get: {
+          tags: ["Events"],
+          summary: "List published events",
+          description: "Public.",
+          security: [],
+          responses: { 200: { description: "Published events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
+        },
+      },
+      "/events/{id}/submit": {
+        patch: {
+          tags: ["Events"],
+          summary: "Submit a draft for federation approval",
+          description: "The event creator only. Transitions `DRAFT` to `PENDING_APPROVAL`.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "Submitted" }, 400: { description: "Invalid status", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, 403: { description: "Not the creator" } },
+        },
+      },
+      "/events/{id}/approve": {
+        patch: {
+          tags: ["Events"],
+          summary: "Approve and publish an event",
+          description: "Federation only (`event:approve`). Transitions `PENDING_APPROVAL` to `PUBLISHED` and records the approver.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "Approved and published" }, 400: { description: "Invalid status" }, 403: { description: "Forbidden" } },
+        },
+      },
+      "/events/{id}/reject": {
+        patch: {
+          tags: ["Events"],
+          summary: "Reject a submitted event",
+          description: "Federation only (`event:approve`).",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["reason"], properties: { reason: { type: "string", example: "Schedule details are incomplete." } } } } } },
+          responses: { 200: { description: "Rejected" } },
+        },
+      },
+      "/events/{id}/status": {
+        patch: {
+          tags: ["Events"],
+          summary: "Override an event status",
+          description: "Administrative override. Requires `event:override`; every override is written to event history and the audit log.",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["status", "reason"], properties: { status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, reason: { type: "string" } } } } } },
+          responses: { 200: { description: "Overridden" } },
+        },
+      },
+
       "/fayda/verify/{verificationId}/confirm": {
         post: {
           tags: ["Fayda Verification"],

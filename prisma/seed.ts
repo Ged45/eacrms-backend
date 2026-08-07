@@ -48,6 +48,10 @@ const roles = [
     name: "FINANCE_OFFICER",
     description: "Finance and payments",
   },
+  {
+    name: "EVENT_MANAGER",
+    description: "Create and manage events pending federation approval",
+  },
 ];
 
 /**
@@ -91,6 +95,19 @@ const permissions = [
   { name: "competition:publish", description: "Publish competitions" },
   { name: "competition:view", description: "View competitions" },
 
+  // Events
+  { name: "event:create", description: "Create and submit events" },
+  { name: "event:view", description: "View events and event status history" },
+  { name: "event:approve", description: "Approve or reject submitted events" },
+  { name: "event:override", description: "Override an event status" },
+  { name: "event:checkin", description: "Generate QR tokens and check attendees in" },
+  { name: "event:register", description: "Register athletes for events" },
+
+  // Federation policies
+  { name: "policy:create", description: "Create federation policies" },
+  { name: "policy:update", description: "Update and assign federation policies" },
+  { name: "policy:view", description: "View all federation policies" },
+
   // Payments
   { name: "payment:create", description: "Create payment" },
   { name: "payment:approve", description: "Approve payment" },
@@ -126,6 +143,12 @@ const rolePermissions: Record<string, string[]> = {
     "competition:create",
     "competition:update",
     "competition:publish",
+    "event:approve",
+    "event:view",
+    "event:checkin",
+    "policy:create",
+    "policy:update",
+    "policy:view",
     "payment:approve",
     "report:view",
     "audit:view",
@@ -157,6 +180,14 @@ const rolePermissions: Record<string, string[]> = {
 
   ATHLETE: [
     "competition:view",
+    "event:register",
+  ],
+
+  EVENT_MANAGER: [
+    "event:create",
+    "event:view",
+    "event:checkin",
+    "event:register",
   ],
 
   REFEREE: [

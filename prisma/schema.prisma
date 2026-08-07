@@ -66,6 +66,62 @@ enum UserStatus {
   DELETED
 }
 
+enum EventStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  REJECTED
+  CANCELLED
+}
+
+enum PolicyScope {
+  CLUB
+  EVENT
+  ATHLETE_PARTICIPATION
+}
+
+enum PolicyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PolicyAuditAction {
+  CREATED
+  UPDATED
+  ASSIGNED
+  UNASSIGNED
+}
+
+enum EventAttendeeType {
+  ATHLETE
+  CLUB
+}
+
+enum PaymentProvider {
+  MOCK_TELEBIRR
+}
+
+enum PaymentType {
+  EVENT_REGISTRATION
+  EVENT_FEE
+  CLUB_FEE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum EventRegistrationStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+}
+
 enum VerificationType {
   EMAIL
   PHONE
@@ -113,6 +169,17 @@ model User {
   registeredCoaches  Coach[]   @relation("RegisteredCoaches")
   verifiedClubs      Club[]    @relation("VerifiedClubs")
   verifications      UserVerification[]
+  eventsCreated      Event[]   @relation("EventCreator")
+  eventsApproved     Event[]   @relation("EventApprover")
+  eventStatusChanges EventStatusHistory[]
+  policiesCreated    Policy[] @relation("PolicyCreator")
+  policiesUpdated    Policy[] @relation("PolicyUpdater")
+  policyAuditEntries PolicyAuditLog[]
+  policyAssignments  PolicyAssignment[] @relation("PolicyAssignmentCreator")
+  qrTokensGenerated  EventQrToken[] @relation("QrTokenGenerator")
+  eventCheckIns      EventCheckIn[] @relation("CheckInScanner")
+  payments           Payment[]
+  eventRegistrations EventRegistration[]
 }
 
 model Sport {
@@ -146,6 +213,8 @@ model Club {
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   verifier           User?                  @relation("VerifiedClubs", fields: [verifiedBy], references: [id])
+  policyAssignments  PolicyAssignment[]
+  eventAttendees     EventAttendee[]
 
   @@index([verificationStatus])
   @@index([name])
@@ -189,6 +258,9 @@ model Athlete {
   updatedAt DateTime @updatedAt
 
   faydaVerifications FaydaVerification[]
+  eventAttendees     EventAttendee[]
+  eventRegistrations EventRegistration[]
+  payments           Payment[]
 }
 
 model Coach {
@@ -322,4 +394,206 @@ model UserVerification {
 
   @@index([userId])
   @@index([code])
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  title          String
+  description    String?
+  category       String
+  rules          String
+  schedule       Json
+  venue          String?
+  organizerName  String
+  organizerEmail String?
+  organizerPhone String?
+  status         EventStatus @default(DRAFT)
+
+  createdById String
+  createdBy   User @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedById String?
+  approvedBy   User? @relation("EventApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt  DateTime?
+  publishedAt DateTime?
+  rejectionReason String?
+
+  statusHistory EventStatusHistory[]
+  policyAssignments PolicyAssignment[]
+  attendees         EventAttendee[]
+  registrations     EventRegistration[]
+  payments          Payment[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([category])
+}
+
+model EventStatusHistory {
+  id             String      @id @default(cuid())
+  eventId        String
+  event          Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  previousStatus EventStatus?
+  newStatus      EventStatus
+  reason         String?
+  changedById    String
+  changedBy      User        @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  createdAt      DateTime    @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+model EventAttendee {
+  id          String            @id @default(cuid())
+  eventId     String
+  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendeeType EventAttendeeType
+  athleteId   String?
+  athlete     Athlete?          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  clubId      String?
+  club        Club?             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  qrTokens    EventQrToken[]
+  checkIn     EventCheckIn?
+  createdAt   DateTime          @default(now())
+
+  @@unique([eventId, athleteId])
+  @@unique([eventId, clubId])
+  @@index([eventId, attendeeType])
+}
+
+model EventQrToken {
+  id            String        @id @default(cuid())
+  token         String        @unique
+  attendeeId    String
+  attendee      EventAttendee @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  usedAt        DateTime?
+  generatedById String
+  generatedBy   User          @relation("QrTokenGenerator", fields: [generatedById], references: [id], onDelete: Restrict)
+  createdAt     DateTime      @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model EventCheckIn {
+  id          String        @id @default(cuid())
+  attendeeId  String        @unique
+  attendee    EventAttendee @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  checkedInAt DateTime      @default(now())
+  checkedInById String
+  checkedInBy   User        @relation("CheckInScanner", fields: [checkedInById], references: [id], onDelete: Restrict)
+
+  @@index([checkedInAt])
+}
+
+model EventRegistration {
+  id        String                  @id @default(cuid())
+  eventId   String
+  event     Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   Athlete                  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  status    EventRegistrationStatus @default(PENDING_PAYMENT)
+  payment   Payment?
+  createdById String
+  createdBy   User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  @@unique([eventId, athleteId])
+  @@index([eventId, status])
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  reference   String          @unique
+  provider    PaymentProvider @default(MOCK_TELEBIRR)
+  type        PaymentType
+  status      PaymentStatus   @default(PENDING)
+  amount      Decimal         @db.Decimal(12, 2)
+  currency    String          @default("ETB")
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  eventId     String?
+  event       Event?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  athleteId   String?
+  athlete     Athlete?        @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+  registrationId String?      @unique
+  registration   EventRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  externalTransactionId String? @unique
+  providerPayload Json?
+  paidAt      DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  history     PaymentStatusHistory[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([eventId])
+}
+
+model PaymentStatusHistory {
+  id          String        @id @default(cuid())
+  paymentId   String
+  payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  previousStatus PaymentStatus?
+  newStatus      PaymentStatus
+  transactionId  String?
+  payload        Json?
+  createdAt      DateTime    @default(now())
+
+  @@index([paymentId, createdAt])
+}
+
+model Policy {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  title       String
+  description String?
+  scope       PolicyScope
+  rules       Json
+  status      PolicyStatus @default(ACTIVE)
+  createdById String
+  createdBy   User         @relation("PolicyCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById String
+  updatedBy   User         @relation("PolicyUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  assignments PolicyAssignment[]
+  auditLogs   PolicyAuditLog[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([scope, status])
+}
+
+model PolicyAssignment {
+  id          String   @id @default(cuid())
+  policyId    String
+  policy      Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  clubId      String?
+  club        Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  eventId     String?
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation("PolicyAssignmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+
+  @@unique([policyId, clubId])
+  @@unique([policyId, eventId])
+  @@index([clubId])
+  @@index([eventId])
+}
+
+model PolicyAuditLog {
+  id          String            @id @default(cuid())
+  policyId    String
+  policy      Policy            @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  action      PolicyAuditAction
+  oldValue    Json?
+  newValue    Json?
+  changedById String
+  changedBy   User              @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime          @default(now())
+
+  @@index([policyId, createdAt])
 }
