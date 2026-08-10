@@ -11,8 +11,12 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "https://eacrms-backend-2.onrender.com/api/v1",
+        url: "http://localhost:5000/api/v1",
         description: "Local development server",
+      },
+      {
+        url: "https://eacrms-backend-2.onrender.com/api/v1",
+        description: "Production / Staging server",
       },
     ],
 
@@ -40,7 +44,10 @@ const options: swaggerJsdoc.Options = {
           properties: {
             success: { type: "boolean", example: false },
             message: { type: "string", example: "Validation failed." },
-            errors: { type: "object", additionalProperties: { type: "array", items: { type: "string" } } },
+            errors: {
+              type: "object",
+              additionalProperties: { type: "array", items: { type: "string" } },
+            },
           },
         },
 
@@ -56,6 +63,18 @@ const options: swaggerJsdoc.Options = {
             status:      { type: "string", enum: ["ACTIVE", "PENDING", "SUSPENDED", "DELETED"] },
             createdAt:   { type: "string", format: "date-time" },
           },
+        },
+        UserWithRoles: {
+          allOf: [
+            { $ref: "#/components/schemas/UserPublic" },
+            {
+              type: "object",
+              properties: {
+                roles: { type: "array", items: { type: "string" }, example: ["ATHLETE"] },
+                permissions: { type: "array", items: { type: "string" }, example: ["athlete:view"] },
+              },
+            },
+          ],
         },
 
         // Auth
@@ -103,7 +122,20 @@ const options: swaggerJsdoc.Options = {
             description: { type: "string", example: "Annual national track and field championship." },
             category: { type: "string", example: "TRACK_AND_FIELD" },
             rules: { type: "string", example: "World Athletics rules apply." },
-            schedule: { type: "array", minItems: 1, items: { type: "object", required: ["title", "startsAt", "endsAt"], properties: { title: { type: "string", example: "Opening ceremony" }, startsAt: { type: "string", format: "date-time", example: "2026-10-10T07:00:00.000Z" }, endsAt: { type: "string", format: "date-time", example: "2026-10-10T08:00:00.000Z" }, description: { type: "string" } } } },
+            schedule: {
+              type: "array",
+              minItems: 1,
+              items: {
+                type: "object",
+                required: ["title", "startsAt", "endsAt"],
+                properties: {
+                  title: { type: "string", example: "Opening ceremony" },
+                  startsAt: { type: "string", format: "date-time", example: "2026-10-10T07:00:00.000Z" },
+                  endsAt: { type: "string", format: "date-time", example: "2026-10-10T08:00:00.000Z" },
+                  description: { type: "string" },
+                },
+              },
+            },
             venue: { type: "string", example: "Addis Ababa Stadium" },
             organizerName: { type: "string", example: "Ethiopian Athletics Federation" },
             organizerEmail: { type: "string", format: "email", example: "events@example.com" },
@@ -113,7 +145,20 @@ const options: swaggerJsdoc.Options = {
         Event: {
           allOf: [
             { $ref: "#/components/schemas/EventRequest" },
-            { type: "object", properties: { id: { type: "string" }, status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, createdById: { type: "string" }, approvedById: { type: "string", nullable: true }, approvedAt: { type: "string", format: "date-time", nullable: true }, publishedAt: { type: "string", format: "date-time", nullable: true }, rejectionReason: { type: "string", nullable: true }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
+            {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] },
+                createdById: { type: "string" },
+                approvedById: { type: "string", nullable: true },
+                approvedAt: { type: "string", format: "date-time", nullable: true },
+                publishedAt: { type: "string", format: "date-time", nullable: true },
+                rejectionReason: { type: "string", nullable: true },
+                createdAt: { type: "string", format: "date-time" },
+                updatedAt: { type: "string", format: "date-time" },
+              },
+            },
           ],
         },
 
@@ -127,13 +172,62 @@ const options: swaggerJsdoc.Options = {
             description: { type: "string" },
             scope: { type: "string", enum: ["CLUB", "EVENT", "ATHLETE_PARTICIPATION"] },
             status: { type: "string", enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
-            rules: { type: "object", example: { minimumAge: 14, maximumAge: 18, requiredPermissions: ["athlete:view"] }, additionalProperties: true },
+            rules: {
+              type: "object",
+              example: { minimumAge: 14, maximumAge: 18, requiredPermissions: ["athlete:view"] },
+              additionalProperties: true,
+            },
+          },
+        },
+        PolicyUpdateRequest: {
+          type: "object",
+          properties: {
+            code: { type: "string", example: "EVENT_AGE_LIMITS" },
+            title: { type: "string", example: "Youth event age limits" },
+            description: { type: "string" },
+            scope: { type: "string", enum: ["CLUB", "EVENT", "ATHLETE_PARTICIPATION"] },
+            status: { type: "string", enum: ["ACTIVE", "INACTIVE"] },
+            rules: { type: "object", additionalProperties: true },
+          },
+        },
+        PolicyAssignment: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            policyId: { type: "string" },
+            clubId: { type: "string", nullable: true },
+            eventId: { type: "string", nullable: true },
+            assignedAt: { type: "string", format: "date-time" },
+          },
+        },
+        PolicyAuditLog: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            policyId: { type: "string" },
+            changedById: { type: "string" },
+            action: { type: "string", example: "UPDATE" },
+            changes: { type: "object" },
+            createdAt: { type: "string", format: "date-time" },
           },
         },
         Policy: {
           allOf: [
             { $ref: "#/components/schemas/PolicyRequest" },
-            { type: "object", properties: { id: { type: "string" }, createdById: { type: "string" }, updatedById: { type: "string" }, assignments: { type: "array", items: { type: "object" } }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
+            {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                createdById: { type: "string" },
+                updatedById: { type: "string" },
+                assignments: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/PolicyAssignment" },
+                },
+                createdAt: { type: "string", format: "date-time" },
+                updatedAt: { type: "string", format: "date-time" },
+              },
+            },
           ],
         },
 
@@ -283,6 +377,7 @@ const options: swaggerJsdoc.Options = {
             createdAt:    { type: "string", format: "date-time" },
           },
         },
+
         // Payments
         CreateEventRegistration: {
           type: "object",
@@ -327,13 +422,44 @@ const options: swaggerJsdoc.Options = {
             createdAt: { type: "string", format: "date-time" },
           },
         },
+
+        // Event QR Check-in
+        EventQRTokenRequest: {
+          type: "object",
+          required: ["attendeeType", "attendeeId"],
+          properties: {
+            attendeeType: { type: "string", enum: ["ATHLETE", "CLUB"] },
+            attendeeId: { type: "string" },
+            expiresInMinutes: { type: "integer", default: 1440, maximum: 10080 },
+          },
+        },
+        EventQRTokenResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "object",
+              properties: {
+                qrData: { type: "string", example: "EACRMS-QR-XYZ987" },
+                expiresAt: { type: "string", format: "date-time" },
+              },
+            },
+          },
+        },
+        EventCheckInScanRequest: {
+          type: "object",
+          required: ["token"],
+          properties: {
+            token: { type: "string" },
+          },
+        },
       },
     },
 
-    // ─── Global security (override per-route with security: [] for public) ────
+    // ─── Global security ──────────────────────────────────────────────────────
     security: [{ bearerAuth: [] }],
 
-    // ─── All paths inlined ────────────────────────────────────────────────────
+    // ─── All paths ────────────────────────────────────────────────────────────
     paths: {
       // ── Health ──────────────────────────────────────────────────────────────
       "/health": {
@@ -342,7 +468,17 @@ const options: swaggerJsdoc.Options = {
           summary: "Health check",
           security: [],
           responses: {
-            200: { description: "Server is healthy", content: { "application/json": { schema: { type: "object", properties: { status: { type: "string", example: "OK" } } } } } },
+            200: {
+              description: "Server is healthy",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: { status: { type: "string", example: "OK" } },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -354,9 +490,26 @@ const options: swaggerJsdoc.Options = {
           summary: "Register a new user",
           description: "Creates a user with ATHLETE role. Status starts as PENDING.",
           security: [],
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/RegisterRequest" } } } },
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/RegisterRequest" } } },
+          },
           responses: {
-            201: { description: "Registered successfully", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string" }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
+            201: {
+              description: "Registered successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string" },
+                      data: { $ref: "#/components/schemas/UserPublic" },
+                    },
+                  },
+                },
+              },
+            },
             400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
             409: { description: "Email already exists", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -368,7 +521,10 @@ const options: swaggerJsdoc.Options = {
           summary: "Login",
           description: "Returns access + refresh tokens. Account must be ACTIVE.",
           security: [],
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/LoginRequest" } } } },
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/LoginRequest" } } },
+          },
           responses: {
             200: { description: "Login successful", content: { "application/json": { schema: { $ref: "#/components/schemas/LoginResponse" } } } },
             400: { description: "Invalid credentials or account not active", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -381,7 +537,20 @@ const options: swaggerJsdoc.Options = {
           summary: "Get current user",
           description: "Returns the authenticated user's profile, roles, and permissions.",
           responses: {
-            200: { description: "Current user", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { allOf: [{ $ref: "#/components/schemas/UserPublic" }, { type: "object", properties: { roles: { type: "array", items: { type: "string" }, example: ["SUPER_ADMIN"] }, permissions: { type: "array", items: { type: "string" }, example: ["athlete:view"] } } }] } } } } } },
+            200: {
+              description: "Current user",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: { $ref: "#/components/schemas/UserWithRoles" },
+                    },
+                  },
+                },
+              },
+            },
             401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
@@ -393,7 +562,20 @@ const options: swaggerJsdoc.Options = {
           description: "Stateless — client should discard the token.",
           security: [],
           responses: {
-            200: { description: "Logged out", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "Logged out successfully." } } } } } },
+            200: {
+              description: "Logged out",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Logged out successfully." },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -409,6 +591,7 @@ const options: swaggerJsdoc.Options = {
         },
       },
 
+      // ── Verification ────────────────────────────────────────────────────────
       "/auth/verify/email": {
         post: {
           tags: ["Verification"],
@@ -432,7 +615,7 @@ const options: swaggerJsdoc.Options = {
           },
           responses: {
             200: {
-              description: "Email verified. accountActive=true means you can now log in.",
+              description: "Email verified.",
               content: {
                 "application/json": {
                   schema: {
@@ -462,7 +645,7 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Verification"],
           summary: "Request phone OTP",
-          description: "Sends a 6-digit OTP to the phone number on the account. Email must be verified first. Requires a valid token (even though the account is not yet ACTIVE — the token from the login attempt is not available yet, so use the token from a future partial-auth flow, or use userId via a temporary token issued at registration).",
+          description: "Sends a 6-digit OTP to the phone number on the account. Email must be verified first.",
           responses: {
             200: {
               description: "OTP sent",
@@ -510,7 +693,7 @@ const options: swaggerJsdoc.Options = {
           },
           responses: {
             200: {
-              description: "Phone verified. If email was already verified, account becomes ACTIVE.",
+              description: "Phone verified.",
               content: {
                 "application/json": {
                   schema: {
@@ -522,7 +705,6 @@ const options: swaggerJsdoc.Options = {
                         properties: {
                           message:       { type: "string", example: "Phone number verified successfully." },
                           accountActive: { type: "boolean", example: true },
-            
                           note:          { type: "string", example: "Your account is now active. You can log in." },
                         },
                       },
@@ -540,7 +722,7 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Verification"],
           summary: "Resend verification code",
-          description: "Resend the email code or phone OTP. Previous codes are invalidated.",
+          description: "Resend the email code or phone OTP.",
           requestBody: {
             required: true,
             content: {
@@ -636,61 +818,6 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
-      // ── Payments ───────────────────────────────────────────────────────────
-      "/payments/mock/webhook": {
-        post: {
-          tags: ["Payments"],
-          summary: "Process a mock payment webhook",
-          description: "Internal/testing endpoint for mock payment provider callbacks. Accepts `reference`, `status` (PAID|FAILED) and `transactionId`. Uses a shared header `x-mock-payment-secret` for verification.",
-          security: [],
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/MockWebhookRequest" } } } },
-          responses: {
-            200: { description: "Webhook processed", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
-            400: { description: "Invalid payload or payment already finalized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            403: { description: "Invalid webhook secret", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            404: { description: "Payment not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          },
-        },
-      },
-      "/payments/history": {
-        get: {
-          tags: ["Payments"],
-          summary: "Get payment history for current user",
-          description: "Returns the authenticated user's payments ordered by createdAt desc.",
-          responses: {
-            200: { description: "Payment history", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Payment" } } } } } } },
-            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          },
-        },
-      },
-      "/payments/{paymentId}/status": {
-        get: {
-          tags: ["Payments"],
-          summary: "Get payment status",
-          parameters: [{ in: "path", name: "paymentId", required: true, schema: { type: "string" } }],
-          responses: {
-            200: { description: "Payment status", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
-            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            404: { description: "Payment not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          },
-        },
-      },
-      "/events/{eventId}/registrations": {
-        post: {
-          tags: ["Payments"],
-          summary: "Create an event registration and associated payment",
-          description: "Registers an athlete for an event and creates a payment record. Returns a `mockCheckout` object for test providers.",
-          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateEventRegistration" } } } },
-          responses: {
-            201: { description: "Registration created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { registration: { type: "object" }, payment: { $ref: "#/components/schemas/Payment" }, mockCheckout: { $ref: "#/components/schemas/MockCheckout" } } } } } } } },
-            400: { description: "Validation failed or event not published", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            404: { description: "Event or athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          },
-        },
-      },
       "/athletes": {
         get: {
           tags: ["Athletes"],
@@ -751,10 +878,10 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Athletes"],
           summary: "Approve athlete",
-          description: "Sets `AthleteStatus` to `APPROVED` and `UserStatus` to `ACTIVE` so the athlete can log in. Requires `athlete:update` permission.",
+          description: "Sets AthleteStatus to APPROVED and UserStatus to ACTIVE.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
-            200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete approved. Account is now active." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
             400: { description: "Already approved or rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -764,11 +891,11 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Athletes"],
           summary: "Reject athlete",
-          description: "Sets `AthleteStatus` to `REJECTED`. User remains `PENDING` and cannot log in. Requires `athlete:update` permission.",
+          description: "Sets AthleteStatus to REJECTED.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
-          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Incomplete documentation submitted." } } } } } },
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string" } } } } } },
           responses: {
-            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete rejected." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
             400: { description: "Already rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -778,10 +905,10 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Athletes"],
           summary: "Set athlete to ACTIVE",
-          description: "Athlete must be `APPROVED` first. Sets `AthleteStatus` to `ACTIVE` (fully active member). Requires `athlete:update` permission.",
+          description: "Athlete must be APPROVED first.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
-            200: { description: "Activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete is now ACTIVE." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            200: { description: "Activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
             400: { description: "Not yet approved", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -791,11 +918,11 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Athletes"],
           summary: "Suspend athlete",
-          description: "Sets `AthleteStatus` to `SUSPENDED` and `UserStatus` to `PENDING`, blocking login. Requires `athlete:update` permission.",
+          description: "Sets AthleteStatus to SUSPENDED and UserStatus to PENDING.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
-          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Violation of conduct policy." } } } } } },
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string" } } } } } },
           responses: {
-            200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Athlete suspended." }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
             400: { description: "Already suspended", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -821,7 +948,7 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Coaches"],
           summary: "Club admin registers a coach",
-          description: "Requires `coach:create` permission. Status starts as PENDING.",
+          description: "Requires `coach:create` permission.",
           requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CoachRequest" } } } },
           responses: {
             201: { description: "Registered by admin", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
@@ -898,10 +1025,9 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Coaches"],
           summary: "Approve coach",
-          description: "Sets `CoachStatus` to `APPROVED` and `UserStatus` to `ACTIVE` so the coach can log in. Requires `coach:update` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
-            200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach approved. Account is now active." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
             400: { description: "Already approved or rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -911,11 +1037,10 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Coaches"],
           summary: "Reject coach",
-          description: "Sets coach status to `REJECTED`. User remains `PENDING`. Requires `coach:update` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
-          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Incomplete documentation submitted." } } } } } },
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string" } } } } } },
           responses: {
-            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach rejected." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
             400: { description: "Already rejected", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -925,10 +1050,9 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Coaches"],
           summary: "Set coach to ACTIVE",
-          description: "Coach must be `APPROVED` first. Sets status to `ACTIVE`. Requires `coach:update` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
-            200: { description: "Activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach is now ACTIVE." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            200: { description: "Activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
             400: { description: "Not yet approved", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -938,11 +1062,10 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Coaches"],
           summary: "Suspend coach",
-          description: "Sets status to `SUSPENDED` and blocks login. Requires `coach:update` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
-          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string", example: "Violation of conduct policy." } } } } } },
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { reason: { type: "string" } } } } } },
           responses: {
-            200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "Coach suspended." }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
+            200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CoachProfile" } } } } } },
             400: { description: "Already suspended", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -954,9 +1077,25 @@ const options: swaggerJsdoc.Options = {
         get: {
           tags: ["Users"],
           summary: "List all users",
-          description: "Returns all users with their roles. Requires `user:view` permission.",
+          description: "Requires `user:view` permission.",
           responses: {
-            200: { description: "Users list", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { allOf: [{ $ref: "#/components/schemas/UserPublic" }, { type: "object", properties: { roles: { type: "array", items: { type: "string" }, example: ["ATHLETE"] } } }] } } } } } } },
+            200: {
+              description: "Users list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/UserWithRoles" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
             401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
@@ -966,24 +1105,10 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Users"],
           summary: "Activate user account",
-          description: "Directly sets `UserStatus` to `ACTIVE`, allowing the user to log in. Use this when you need to grant access independently of the athlete/coach approval flow. Requires `user:update` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
-            200: { description: "Account activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "User account activated." }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
+            200: { description: "Account activated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
             400: { description: "Already active", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          },
-        },
-      },
-      "/users/{id}": {
-        delete: {
-          tags: ["Users"],
-          summary: "Permanently delete a user",
-          description: "Deletes the user and all related data (athlete/coach profile, audit logs, verifications) via database CASCADE. Cannot delete your own account. Requires `user:delete` permission.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
-          responses: {
-            200: { description: "User deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "User abebe@example.com has been permanently deleted." } } } } } },
-            400: { description: "Cannot delete own account", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
@@ -992,11 +1117,22 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Users"],
           summary: "Deactivate user account",
-          description: "Sets `UserStatus` to `SUSPENDED`, blocking login immediately. Requires `user:update` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
-            200: { description: "Account deactivated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string", example: "User account deactivated." }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
+            200: { description: "Account deactivated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
             400: { description: "Not active", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/users/{id}": {
+        delete: {
+          tags: ["Users"],
+          summary: "Permanently delete a user",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: { description: "User deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string" } } } } } },
+            400: { description: "Cannot delete own account", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
@@ -1007,7 +1143,6 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Clubs"],
           summary: "Register a new club",
-          description: "Public. verificationStatus starts as PENDING.",
           security: [],
           requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ClubRequest" } } } },
           responses: {
@@ -1038,7 +1173,6 @@ const options: swaggerJsdoc.Options = {
         get: {
           tags: ["Clubs"],
           summary: "List pending clubs",
-          description: "Requires `club:approve` permission.",
           responses: {
             200: { description: "Pending clubs", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, count: { type: "integer" }, data: { type: "array", items: { $ref: "#/components/schemas/ClubProfile" } } } } } } },
             403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -1058,7 +1192,6 @@ const options: swaggerJsdoc.Options = {
         delete: {
           tags: ["Clubs"],
           summary: "Delete club",
-          description: "Requires `club:delete` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
             200: { description: "Deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } } } } },
@@ -1069,7 +1202,6 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Clubs"],
           summary: "Approve a club",
-          description: "Requires `club:approve` permission. Sets verificationStatus to VERIFIED.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
             200: { description: "Approved", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } },
@@ -1081,7 +1213,6 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Clubs"],
           summary: "Reject a club",
-          description: "Requires `club:approve` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["reason"], properties: { reason: { type: "string", minLength: 5, example: "Incomplete documentation." } } } } } },
           responses: {
@@ -1093,7 +1224,6 @@ const options: swaggerJsdoc.Options = {
         patch: {
           tags: ["Clubs"],
           summary: "Suspend a club",
-          description: "Requires `club:approve` permission.",
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
             200: { description: "Suspended", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } },
@@ -1106,7 +1236,6 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Fayda Verification"],
           summary: "Initiate Fayda verification for an athlete",
-          description: "Submits the athlete's NIN. An OTP is sent to their registered phone. The OTP is returned in the response outside production. Requires `fayda:verify` permission.",
           parameters: [{ in: "path", name: "athleteId", required: true, schema: { type: "string" }, example: "clxyz123" }],
           requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaInitiateRequest" } } } },
           responses: {
@@ -1120,7 +1249,6 @@ const options: swaggerJsdoc.Options = {
         get: {
           tags: ["Fayda Verification"],
           summary: "Get Fayda verification status for an athlete",
-          description: "Requires `fayda:verify` permission.",
           parameters: [{ in: "path", name: "athleteId", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
             200: { description: "Verification record", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/FaydaVerificationRecord" } } } } } },
@@ -1132,7 +1260,6 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Fayda Verification"],
           summary: "Initiate Fayda verification for a coach",
-          description: "Submits the coach's NIN. OTP sent to their registered phone. Requires `fayda:verify` permission.",
           parameters: [{ in: "path", name: "coachId", required: true, schema: { type: "string" }, example: "clxyz123" }],
           requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaInitiateRequest" } } } },
           responses: {
@@ -1146,7 +1273,6 @@ const options: swaggerJsdoc.Options = {
         get: {
           tags: ["Fayda Verification"],
           summary: "Get Fayda verification status for a coach",
-          description: "Requires `fayda:verify` permission.",
           parameters: [{ in: "path", name: "coachId", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
             200: { description: "Verification record", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/FaydaVerificationRecord" } } } } } },
@@ -1154,157 +1280,10 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
-      "/events/{eventId}/qr-tokens": {
-        post: {
-          tags: ["Event QR Check-in"],
-          summary: "Generate an attendee QR token",
-          description: "Requires `event:checkin`. The event must be published. The response's `qrData` is the value to encode in a QR image.",
-          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["attendeeType", "attendeeId"], properties: { attendeeType: { type: "string", enum: ["ATHLETE", "CLUB"] }, attendeeId: { type: "string" }, expiresInMinutes: { type: "integer", default: 1440, maximum: 10080 } } } } } },
-          responses: { 201: { description: "QR token generated" }, 400: { description: "Event is not published or attendee already checked in" }, 404: { description: "Event or attendee not found" } },
-        },
-      },
-      "/events/{eventId}/check-ins/scan": {
-        post: {
-          tags: ["Event QR Check-in"],
-          summary: "Validate a QR token and check in an attendee",
-          description: "Requires `event:checkin`. Tokens are one-time; invalid, expired, reused, or cross-event tokens are rejected.",
-          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["token"], properties: { token: { type: "string" } } } } } },
-          responses: { 200: { description: "Checked in" }, 400: { description: "Invalid, expired, or used QR token" } },
-        },
-      },
-      "/events/{eventId}/check-ins": {
-        get: {
-          tags: ["Event QR Check-in"],
-          summary: "List event check-ins",
-          description: "Requires `event:view` permission.",
-          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
-          responses: { 200: { description: "Check-ins" } },
-        },
-      },
-
-      "/policies": {
-        get: {
-          tags: ["Federation Policies"],
-          summary: "List all policies",
-          description: "Requires `policy:view` permission.",
-          responses: { 200: { description: "Policies", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Policy" } } } } } } } },
-        },
-        post: {
-          tags: ["Federation Policies"],
-          summary: "Create a policy",
-          description: "Requires `policy:create` permission.",
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PolicyRequest" } } } },
-          responses: { 201: { description: "Created" }, 400: { description: "Validation failed" } },
-        },
-      },
-      "/policies/relevant": {
-        get: {
-          tags: ["Federation Policies"],
-          summary: "Get policies relevant to the current user",
-          description: "Returns active policies assigned to the caller's club or created events. It does not expose unrelated policy rules.",
-          responses: { 200: { description: "Relevant policies" } },
-        },
-      },
-      "/policies/{id}": {
-        patch: {
-          tags: ["Federation Policies"],
-          summary: "Update a policy",
-          description: "Requires `policy:update`; each update is recorded in the policy audit log.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PolicyRequest" } } } },
-          responses: { 200: { description: "Updated" } },
-        },
-      },
-      "/policies/{id}/assignments": {
-        post: {
-          tags: ["Federation Policies"],
-          summary: "Assign a policy to a club or event",
-          description: "Requires `policy:update`. Exactly one target is required.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { clubId: { type: "string" }, eventId: { type: "string" } } } } } },
-          responses: { 201: { description: "Assigned" } },
-        },
-      },
-      "/policies/{id}/audit": {
-        get: {
-          tags: ["Federation Policies"],
-          summary: "Get policy change history",
-          description: "Requires `policy:view` permission.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          responses: { 200: { description: "Audit history" } },
-        },
-      },
-
-      "/events": {
-        get: {
-          tags: ["Events"],
-          summary: "List all events",
-          description: "Requires `event:view` permission.",
-          responses: { 200: { description: "Events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
-        },
-        post: {
-          tags: ["Events"],
-          summary: "Create an event draft",
-          description: "Creates an event in `DRAFT`. Requires `event:create` permission; it cannot be published until federation approval.",
-          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/EventRequest" } } } },
-          responses: { 201: { description: "Draft created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } } },
-        },
-      },
-      "/events/published": {
-        get: {
-          tags: ["Events"],
-          summary: "List published events",
-          description: "Public.",
-          security: [],
-          responses: { 200: { description: "Published events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
-        },
-      },
-      "/events/{id}/submit": {
-        patch: {
-          tags: ["Events"],
-          summary: "Submit a draft for federation approval",
-          description: "The event creator only. Transitions `DRAFT` to `PENDING_APPROVAL`.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          responses: { 200: { description: "Submitted" }, 400: { description: "Invalid status", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, 403: { description: "Not the creator" } },
-        },
-      },
-      "/events/{id}/approve": {
-        patch: {
-          tags: ["Events"],
-          summary: "Approve and publish an event",
-          description: "Federation only (`event:approve`). Transitions `PENDING_APPROVAL` to `PUBLISHED` and records the approver.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          responses: { 200: { description: "Approved and published" }, 400: { description: "Invalid status" }, 403: { description: "Forbidden" } },
-        },
-      },
-      "/events/{id}/reject": {
-        patch: {
-          tags: ["Events"],
-          summary: "Reject a submitted event",
-          description: "Federation only (`event:approve`).",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["reason"], properties: { reason: { type: "string", example: "Schedule details are incomplete." } } } } } },
-          responses: { 200: { description: "Rejected" } },
-        },
-      },
-      "/events/{id}/status": {
-        patch: {
-          tags: ["Events"],
-          summary: "Override an event status",
-          description: "Administrative override. Requires `event:override`; every override is written to event history and the audit log.",
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
-          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["status", "reason"], properties: { status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, reason: { type: "string" } } } } } },
-          responses: { 200: { description: "Overridden" } },
-        },
-      },
-
       "/fayda/verify/{verificationId}/confirm": {
         post: {
           tags: ["Fayda Verification"],
           summary: "Confirm OTP",
-          description: "Submits the 6-digit OTP. On success sets faydaVerified=true and advances status to FAYDA_VERIFIED. Max 5 attempts, expires in 10 minutes.",
           parameters: [{ in: "path", name: "verificationId", required: true, schema: { type: "string" }, example: "clxyz123" }],
           requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaConfirmRequest" } } } },
           responses: {
@@ -1319,18 +1298,7 @@ const options: swaggerJsdoc.Options = {
                       data: {
                         type: "object",
                         properties: {
-                          message:       { type: "string", example: "Fayda verification successful. Athlete status updated to FAYDA_VERIFIED." },
-                          demographicData: {
-                            type: "object",
-                            properties: {
-                              nin:         { type: "string", example: "ETH-19950810-001" },
-                              firstName:   { type: "string", example: "Fayda" },
-                              lastName:    { type: "string", example: "Verified" },
-                              dateOfBirth: { type: "string", example: "1995-01-01" },
-                              gender:      { type: "string", example: "MALE" },
-                              phoneNumber: { type: "string", example: "+251911000000" },
-                            },
-                          },
+                          message: { type: "string", example: "Fayda verification successful." },
                         },
                       },
                     },
@@ -1338,15 +1306,244 @@ const options: swaggerJsdoc.Options = {
                 },
               },
             },
-            400: { description: "Wrong OTP / expired / max attempts", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            400: { description: "Wrong OTP / expired", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Verification not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-            409: { description: "Already confirmed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+
+      // ── Event QR Check-in ──────────────────────────────────────────────────
+      "/events/{eventId}/qr-tokens": {
+        post: {
+          tags: ["Event QR Check-in"],
+          summary: "Generate an attendee QR token",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/EventQRTokenRequest" } } } },
+          responses: {
+            201: { description: "QR token generated", content: { "application/json": { schema: { $ref: "#/components/schemas/EventQRTokenResponse" } } } },
+            400: { description: "Event not published or already checked in", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Event or attendee not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/events/{eventId}/check-ins/scan": {
+        post: {
+          tags: ["Event QR Check-in"],
+          summary: "Validate a QR token and check in an attendee",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/EventCheckInScanRequest" } } } },
+          responses: {
+            200: { description: "Checked in", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "Attendee checked in successfully." } } } } } },
+            400: { description: "Invalid or expired QR token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/events/{eventId}/check-ins": {
+        get: {
+          tags: ["Event QR Check-in"],
+          summary: "List event check-ins",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          responses: {
+            200: {
+              description: "Check-ins",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: { type: "array", items: { type: "object" } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // ── Federation Policies ────────────────────────────────────────────────
+      "/policies": {
+        get: {
+          tags: ["Federation Policies"],
+          summary: "List all policies",
+          responses: {
+            200: {
+              description: "Policies",
+              content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Policy" } } } } } },
+            },
+          },
+        },
+        post: {
+          tags: ["Federation Policies"],
+          summary: "Create a policy",
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PolicyRequest" } } } },
+          responses: {
+            201: { description: "Created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Policy" } } } } } },
+            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+          },
+        },
+      },
+      "/policies/relevant": {
+        get: {
+          tags: ["Federation Policies"],
+          summary: "Get policies relevant to the current user",
+          responses: {
+            200: {
+              description: "Relevant policies",
+              content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Policy" } } } } } },
+            },
+          },
+        },
+      },
+      "/policies/{id}": {
+        patch: {
+          tags: ["Federation Policies"],
+          summary: "Update a policy",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PolicyUpdateRequest" } } } },
+          responses: {
+            200: { description: "Updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Policy" } } } } } },
+          },
+        },
+      },
+      "/policies/{id}/assignments": {
+        post: {
+          tags: ["Federation Policies"],
+          summary: "Assign a policy to a club or event",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { clubId: { type: "string" }, eventId: { type: "string" } } } } } },
+          responses: {
+            201: { description: "Assigned", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/PolicyAssignment" } } } } } },
+          },
+        },
+      },
+      "/policies/{id}/audit": {
+        get: {
+          tags: ["Federation Policies"],
+          summary: "Get policy change history",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: {
+            200: {
+              description: "Audit history",
+              content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/PolicyAuditLog" } } } } } },
+            },
+          },
+        },
+      },
+
+      // ── Events ─────────────────────────────────────────────────────────────
+      "/events": {
+        get: {
+          tags: ["Events"],
+          summary: "List all events",
+          responses: { 200: { description: "Events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
+        },
+        post: {
+          tags: ["Events"],
+          summary: "Create an event draft",
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/EventRequest" } } } },
+          responses: { 201: { description: "Draft created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } } },
+        },
+      },
+      "/events/published": {
+        get: {
+          tags: ["Events"],
+          summary: "List published events",
+          security: [],
+          responses: { 200: { description: "Published events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
+        },
+      },
+      "/events/{id}/submit": {
+        patch: {
+          tags: ["Events"],
+          summary: "Submit a draft for federation approval",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Submitted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } },
+            400: { description: "Invalid status", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/events/{id}/approve": {
+        patch: {
+          tags: ["Events"],
+          summary: "Approve and publish an event",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Approved and published", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } },
+            400: { description: "Invalid status", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/events/{id}/reject": {
+        patch: {
+          tags: ["Events"],
+          summary: "Reject a submitted event",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["reason"], properties: { reason: { type: "string" } } } } } },
+          responses: {
+            200: { description: "Rejected", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } },
+          },
+        },
+      },
+      "/events/{id}/status": {
+        patch: {
+          tags: ["Events"],
+          summary: "Override an event status",
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["status", "reason"], properties: { status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, reason: { type: "string" } } } } } },
+          responses: {
+            200: { description: "Overridden", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Event" } } } } } },
+          },
+        },
+      },
+
+      // ── Payments ───────────────────────────────────────────────────────────
+      "/payments/mock/webhook": {
+        post: {
+          tags: ["Payments"],
+          summary: "Process a mock payment webhook",
+          security: [],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/MockWebhookRequest" } } } },
+          responses: {
+            200: { description: "Webhook processed", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
+            400: { description: "Invalid payload", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/payments/history": {
+        get: {
+          tags: ["Payments"],
+          summary: "Get payment history for current user",
+          responses: {
+            200: { description: "Payment history", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Payment" } } } } } } },
+          },
+        },
+      },
+      "/payments/{paymentId}/status": {
+        get: {
+          tags: ["Payments"],
+          summary: "Get payment status",
+          parameters: [{ in: "path", name: "paymentId", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Payment status", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/Payment" } } } } } },
+          },
+        },
+      },
+      "/events/{eventId}/registrations": {
+        post: {
+          tags: ["Payments"],
+          summary: "Create an event registration and associated payment",
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateEventRegistration" } } } },
+          responses: {
+            201: { description: "Registration created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { registration: { type: "object" }, payment: { $ref: "#/components/schemas/Payment" }, mockCheckout: { $ref: "#/components/schemas/MockCheckout" } } } } } } } },
           },
         },
       },
     },
   },
-  // No external files needed — all paths are inlined above
   apis: [],
 };
 

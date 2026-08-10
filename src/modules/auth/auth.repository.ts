@@ -7,7 +7,6 @@ export const authRepository = {
    * User Queries
    * ----------------------------------------
    */
-
   findUserByEmail(email: string) {
     return prisma.user.findUnique({
       where: {
@@ -54,6 +53,29 @@ export const authRepository = {
     });
   },
 
+  getAllUsers() {
+    return prisma.user.findMany({
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  },
+
   createUser(data: Prisma.UserCreateInput) {
     return prisma.user.create({
       data,
@@ -74,7 +96,6 @@ export const authRepository = {
    * Role Queries
    * ----------------------------------------
    */
-
   findRoleByName(name: string) {
     return prisma.role.findUnique({
       where: {
@@ -97,7 +118,6 @@ export const authRepository = {
    * Audit Log
    * ----------------------------------------
    */
-
   createAuditLog(data: Prisma.AuditLogCreateInput) {
     return prisma.auditLog.create({
       data,
@@ -109,7 +129,6 @@ export const authRepository = {
    * Registration Transaction
    * ----------------------------------------
    */
-
   async createUserWithRole(data: {
     email: string;
     password: string;
@@ -126,11 +145,9 @@ export const authRepository = {
           name: data.roleName,
         },
       });
-
       if (!role) {
         throw new Error(`Role '${data.roleName}' not found.`);
       }
-
       const user = await tx.user.create({
         data: {
           email: data.email,
@@ -141,14 +158,12 @@ export const authRepository = {
           status: UserStatus.PENDING,
         },
       });
-
       await tx.userRole.create({
         data: {
           userId: user.id,
           roleId: role.id,
         },
       });
-
       await tx.auditLog.create({
         data: {
           userId: user.id,
@@ -163,7 +178,6 @@ export const authRepository = {
           userAgent: data.userAgent,
         },
       });
-
       return user;
     });
   },
@@ -173,7 +187,6 @@ export const authRepository = {
    * Refresh Token (Future)
    * ----------------------------------------
    */
-
   saveRefreshToken() {
     // We'll implement this after
     // creating the RefreshToken table.

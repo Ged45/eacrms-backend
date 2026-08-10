@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-
 import { authService } from "./auth.service";
 import {
   LoginSchema,
@@ -20,7 +19,6 @@ export const authController = {
     try {
       const validation =
         RegisterSchema.safeParse(req.body);
-
       if (!validation.success) {
         return res.status(400).json({
           success: false,
@@ -29,12 +27,10 @@ export const authController = {
             validation.error.flatten().fieldErrors,
         });
       }
-
       const user =
         await authService.register(
           validation.data
         );
-
       return res.status(201).json({
         success: true,
         message:
@@ -59,7 +55,6 @@ export const authController = {
     try {
       const validation =
         LoginSchema.safeParse(req.body);
-
       if (!validation.success) {
         return res.status(400).json({
           success: false,
@@ -68,12 +63,10 @@ export const authController = {
             validation.error.flatten().fieldErrors,
         });
       }
-
       const result =
         await authService.login(
           validation.data
         );
-
       return res.status(200).json({
         success: true,
         message: "Login successful.",
@@ -95,12 +88,9 @@ export const authController = {
     next: NextFunction
   ) {
     try {
-      // Will be populated by auth middleware later
       const userId = req.user.userId;
-
       const user =
         await authService.me(userId);
-
       return res.status(200).json({
         success: true,
         data: user,
@@ -145,6 +135,29 @@ export const authController = {
       return res.status(200).json({
         success: true,
         message: "Logged out successfully.",
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * ----------------------------------------
+   * Get All Users
+   * ----------------------------------------
+   */
+  async getUsers(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const users =
+        await authService.getUsers();
+      return res.status(200).json({
+        success: true,
+        message: "Users retrieved successfully.",
+        data: users,
       });
     } catch (error) {
       next(error);

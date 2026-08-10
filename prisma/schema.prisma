@@ -74,15 +74,27 @@ enum EventStatus {
   CANCELLED
 }
 
+enum PolicyType {
+  RULE
+  REGULATION
+  GUIDELINE
+}
+
 enum PolicyScope {
+  FEDERATION_WIDE
+  REGIONAL
+  CLUB_SPECIFIC
   CLUB
   EVENT
   ATHLETE_PARTICIPATION
 }
 
 enum PolicyStatus {
+  DRAFT
+  PENDING_APPROVAL
   ACTIVE
   INACTIVE
+  ARCHIVED
 }
 
 enum PolicyAuditAction {
@@ -127,17 +139,17 @@ enum VerificationType {
   PHONE
 }
 
-enum VerificationStatus {
-  PENDING
-  VERIFIED
-  EXPIRED
-}
-
 enum FaydaVerificationStatus {
   PENDING
   OTP_SENT
   CONFIRMED
   FAILED
+  EXPIRED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
   EXPIRED
 }
 
@@ -172,8 +184,9 @@ model User {
   eventsCreated      Event[]   @relation("EventCreator")
   eventsApproved     Event[]   @relation("EventApprover")
   eventStatusChanges EventStatusHistory[]
-  policiesCreated    Policy[] @relation("PolicyCreator")
-  policiesUpdated    Policy[] @relation("PolicyUpdater")
+  policiesCreated    Policy[]  @relation("PolicyCreatedBy")
+  policiesUpdated    Policy[]  @relation("PolicyUpdatedBy")
+  policiesApproved   Policy[]  @relation("PolicyApprovedBy")
   policyAuditEntries PolicyAuditLog[]
   policyAssignments  PolicyAssignment[] @relation("PolicyAssignmentCreator")
   qrTokensGenerated  EventQrToken[] @relation("QrTokenGenerator")
@@ -547,23 +560,36 @@ model PaymentStatusHistory {
 }
 
 model Policy {
-  id          String       @id @default(cuid())
-  code        String       @unique
-  title       String
-  description String?
-  scope       PolicyScope
-  rules       Json
-  status      PolicyStatus @default(ACTIVE)
-  createdById String
-  createdBy   User         @relation("PolicyCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  updatedById String
-  updatedBy   User         @relation("PolicyUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
-  assignments PolicyAssignment[]
-  auditLogs   PolicyAuditLog[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  type          PolicyType
+  content       String
+  status        PolicyStatus @default(DRAFT)
+  scope         PolicyScope
+  version       Int          @default(1)
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
 
-  @@index([scope, status])
+  createdById   String
+  createdBy     User         @relation("PolicyCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  updatedById   String?
+  updatedBy     User?        @relation("PolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  approvedById  String?
+  approvedBy    User?        @relation("PolicyApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  assignments   PolicyAssignment[]
+  auditLogs     PolicyAuditLog[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  @@index([status])
+  @@index([scope])
+  @@index([createdAt])
 }
 
 model PolicyAssignment {
