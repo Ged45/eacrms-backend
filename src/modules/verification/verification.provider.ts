@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import AfricasTalking from "africastalking";
 import { hasPostmark, sendViaPostmark } from "../../lib/postmark";
+import { normalizePhoneNumber } from "../../utils/phone";
 
 /**
  * ─── Lazy-initialised clients ────────────────────────────────────────────────
@@ -111,12 +112,13 @@ export const notificationProvider = {
    * Falls back to console log if AT credentials are not set.
    */
   async sendPhoneOtp(phoneNumber: string, otp: string): Promise<void> {
+    const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
     const at = getAT();
 
     if (!at) {
       // Fallback — development mode
       console.log("─────────────────────────────────────────");
-      console.log("[SMS] To:      ", phoneNumber);
+      console.log("[SMS] To:      ", normalizedPhoneNumber);
       console.log("[SMS] OTP:     ", otp);
       console.log("[SMS] Expires in 10 minutes");
       console.log("─────────────────────────────────────────");
@@ -127,12 +129,12 @@ export const notificationProvider = {
 
     try {
       const result = await at.SMS.send({
-        to:      [phoneNumber],
+        to:      [normalizedPhoneNumber],
         message: `Your EACRMS verification OTP is: ${otp}. Valid for 10 minutes. Do not share this code.`,
         from:    senderId,
       });
 
-      console.log(`[SMS] OTP sent to ${phoneNumber}:`, JSON.stringify(result));
+      console.log(`[SMS] OTP sent to ${normalizedPhoneNumber}:`, JSON.stringify(result));
     } catch (err) {
       console.error("[SMS] Africa's Talking error:", err);
       throw new Error(`Failed to send SMS OTP: ${err}`);

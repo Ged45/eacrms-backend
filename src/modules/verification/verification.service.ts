@@ -6,6 +6,7 @@ import { auditService } from "../audit/audit.service";
 import { BadRequestError } from "../../errors/BadRequestError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { ConflictError } from "../../errors/ConflictError";
+import { normalizePhoneNumber } from "../../utils/phone";
 
 const EMAIL_CODE_EXPIRY_HOURS = 24;
 const PHONE_OTP_EXPIRY_MINUTES = 10;
@@ -176,7 +177,9 @@ export const verificationService = {
   },
 
   async verifyPhoneByNumber(phoneNumber: string, otp: string) {
-    const user = await verificationRepository.findUserByPhone(phoneNumber);
+    const user = await verificationRepository.findUserByPhone(
+      normalizePhoneNumber(phoneNumber)
+    );
     if (!user) throw new NotFoundError("User not found.");
     return verificationService.verifyPhone(user.id, otp);
   },

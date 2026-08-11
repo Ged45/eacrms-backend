@@ -14,6 +14,7 @@ import {
 } from "../../utils/jwt";
 
 import { AuditActions } from "../../constants/audit-actions";
+import { normalizePhoneNumber } from "../../utils/phone";
 
 const SALT_ROUNDS = 12;
 
@@ -32,10 +33,13 @@ export const authService = {
     data: RegisterDTO,
     metadata?: RequestMetadata
   ) {
+    const phoneNumber = data.phoneNumber
+      ? normalizePhoneNumber(data.phoneNumber)
+      : undefined;
     const existingUser = data.email
       ? await authRepository.findUserByEmail(data.email)
-      : data.phoneNumber
-        ? await authRepository.findUserByPhone(data.phoneNumber)
+      : phoneNumber
+        ? await authRepository.findUserByPhone(phoneNumber)
         : null;
 
     if (existingUser) {
@@ -52,7 +56,7 @@ export const authService = {
       password: hashedPassword,
       firstName: data.firstName,
       lastName: data.lastName,
-      phoneNumber: data.phoneNumber,
+      phoneNumber,
       roleName: "ATHLETE",
       ipAddress: metadata?.ipAddress,
       userAgent: metadata?.userAgent,
@@ -83,7 +87,9 @@ export const authService = {
     data: LoginDTO,
     metadata?: RequestMetadata
   ) {
-    const identifier = data.identifier.trim();
+    const identifier = data.identifier.includes("@")
+      ? data.identifier.trim().toLowerCase()
+      : normalizePhoneNumber(data.identifier);
     const user = identifier.includes("@")
       ? await authRepository.findUserByEmail(identifier.toLowerCase())
       : await authRepository.findUserByPhone(identifier);
