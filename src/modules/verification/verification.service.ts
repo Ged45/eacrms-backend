@@ -19,24 +19,24 @@ function generateCode(length = 6): string {
 /**
  * After any verification step, check if the user should be auto-activated.
  * Rules:
- *   - emailVerified is always required
- *   - phoneVerified is required only if the user has a phoneNumber
+ *   - A registered email or phone number must be verified.
+ *   - If both are provided, either verification is sufficient.
  */
 async function checkAndActivate(userId: string) {
   const user = await verificationRepository.findUserById(userId);
   if (!user || user.status === "ACTIVE") return;
 
-  const emailOk = !user.email || user.emailVerified;
-  const phoneOk = !user.phoneNumber || user.phoneVerified;
+  const emailOk = !!user.email && user.emailVerified;
+  const phoneOk = !!user.phoneNumber && user.phoneVerified;
 
-  if (emailOk && phoneOk) {
+  if (emailOk || phoneOk) {
     await verificationRepository.activateUser(userId);
     await auditService.log({
       userId,
       action: "ACCOUNT_ACTIVATED",
       entity: "User",
       entityId: userId,
-      details: { reason: "Email and phone verification completed." },
+      details: { reason: "A registered contact method was verified." },
     });
   }
 }
