@@ -11,7 +11,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://eacrms-backend-2.onrender.com/api/v1",
+        url: "https://eacrms-backend-2.onrender.com/api/v1",
         description: "Local development server",
       },
     ],
