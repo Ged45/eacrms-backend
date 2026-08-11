@@ -31,12 +31,19 @@ export const RegisterSchema = z.object({
 });
 
 export const LoginSchema = z.object({
-  identifier: z.string().trim().min(1, "Email or phone number is required."),
+  identifier: z.string().trim().min(1, "Email or phone number is required.").optional(),
+  email: z.string().trim().toLowerCase().email("Invalid email address").optional(),
 
   password: z
     .string()
     .min(1, "Password is required"),
-});
+}).refine((data) => data.identifier || data.email, {
+  message: "Email or phone number is required.",
+  path: ["identifier"],
+}).transform((data) => ({
+  identifier: data.identifier ?? data.email!,
+  password: data.password,
+}));
 
 export type RegisterDTO = z.infer<typeof RegisterSchema>;
 export type LoginDTO = z.infer<typeof LoginSchema>;
