@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import { BrevoClient } from "@getbrevo/brevo";
 import AfricasTalking from "africastalking";
 import { hasPostmark, sendViaPostmark } from "../../lib/postmark";
 import { normalizePhoneNumber } from "../../utils/phone";
@@ -9,10 +9,10 @@ import { normalizePhoneNumber } from "../../utils/phone";
  * boots fine in dev/test without real credentials.
  */
 
-function getResendClient(): Resend | null {
-  const key = process.env.RESEND_API_KEY;
+function getBrevoClient(): BrevoClient | null {
+  const key = process.env.BREVO_API_KEY;
   if (!key) return null;
-  return new Resend(key);
+  return new BrevoClient({ apiKey: key });
 }
 
 function getAT() {
@@ -58,11 +58,30 @@ function buildEmailHtml(code: string): string {
 
 export const notificationProvider = {
   /**
-   * Send email verification code via Resend.
-   * Falls back to console log if RESEND_API_KEY is not set.
+  * Send email verification code via Brevo.
+  * Falls back to Postmark, then console logging in development.
    */
   async sendEmailVerification(email: string, code: string): Promise<void> {
-    // Prefer Postmark if configured
+    const client = getBrevoClient();
+
+    if (client) {
+      try {
+        await client.transactionalEmails.sendTransacEmail({
+          sender: {
+            email: process.env.BREVO_SENDER_EMAIL ?? "",
+            name: process.env.BREVO_SENDER_NAME ?? "EACRMS",
+          },
+          to: [{ email }],
+          subject: "Verify your EACRMS account",
+          htmlContent: buildEmailHtml(code),
+        });
+        console.log(`[EMAIL] Verification email sent to ${email} via Brevo`);
+        return;
+      } catch (err) {
+        console.error("[EMAIL] Brevo error:", err);
+      }
+    }
+
     if (hasPostmark()) {
       try {
         await sendViaPostmark({ to: email, html: buildEmailHtml(code) });
@@ -70,41 +89,15 @@ export const notificationProvider = {
         return;
       } catch (err) {
         console.error("[EMAIL] Postmark error:", err);
-        // fallthrough to try Resend
       }
     }
 
-    const client = getResendClient();
-
-    if (!client) {
-      // Fallback — development mode
-      console.log("─────────────────────────────────────────");
-      console.log("[EMAIL] To:      ", email);
-      console.log("[EMAIL] Subject: Verify your EACRMS account");
-      console.log("[EMAIL] Code:    ", code);
-      console.log("[EMAIL] Expires in 24 hours");
-      console.log("─────────────────────────────────────────");
-      return;
-    }
-
-    // Build the from field in code — keeps angle brackets out of env vars
-    // which avoids shell/YAML parsing issues on Windows
-    const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
-    const fromAddress = `EACRMS <${fromEmail}>`;
-
-    const { error } = await client.emails.send({
-      from:    fromAddress,
-      to:      [email],
-      subject: "Verify your EACRMS account",
-      html:    buildEmailHtml(code),
-    });
-
-    if (error) {
-      console.error("[EMAIL] Resend error:", error);
-      throw new Error(`Failed to send verification email: ${error.message}`);
-    }
-
-    console.log(`[EMAIL] Verification email sent to ${email} via Resend`);
+    console.log("─────────────────────────────────────────");
+    console.log("[EMAIL] To:      ", email);
+    console.log("[EMAIL] Subject: Verify your EACRMS account");
+    console.log("[EMAIL] Code:    ", code);
+    console.log("[EMAIL] Expires in 24 hours");
+    console.log("─────────────────────────────────────────");
   },
 
   /**
