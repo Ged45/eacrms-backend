@@ -31,6 +31,25 @@ export const authRepository = {
     });
   },
 
+  findUserByPhone(phoneNumber: string) {
+    return prisma.user.findUnique({
+      where: { phoneNumber },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: { permission: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
   findUserById(id: string) {
     return prisma.user.findUnique({
       where: {
@@ -111,7 +130,7 @@ export const authRepository = {
    */
 
   async createUserWithRole(data: {
-    email: string;
+    email?: string;
     password: string;
     firstName: string;
     lastName: string;

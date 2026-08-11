@@ -26,7 +26,7 @@ async function checkAndActivate(userId: string) {
   const user = await verificationRepository.findUserById(userId);
   if (!user || user.status === "ACTIVE") return;
 
-  const emailOk = user.emailVerified;
+  const emailOk = !user.email || user.emailVerified;
   const phoneOk = !user.phoneNumber || user.phoneVerified;
 
   if (emailOk && phoneOk) {
@@ -67,6 +67,29 @@ export const verificationService = {
     return {
       message: `Verification code sent to ${email}. Valid for ${EMAIL_CODE_EXPIRY_HOURS} hours.`,
       ...(process.env.NODE_ENV !== "production" && { code }),
+    };
+  },
+
+  async initiatePhoneVerification(userId: string, phoneNumber: string) {
+    await verificationRepository.expirePrevious(userId, "PHONE");
+
+    const otp = generateCode(6);
+    const expiresAt = new Date(
+      Date.now() + PHONE_OTP_EXPIRY_MINUTES * 60 * 1000
+    );
+
+    await verificationRepository.create({
+      userId,
+      type: "PHONE",
+      code: otp,
+      expiresAt,
+    });
+
+    await notificationProvider.sendPhoneOtp(phoneNumber, otp);
+
+    return {
+      message: `OTP sent to ${phoneNumber}. Valid for ${PHONE_OTP_EXPIRY_MINUTES} minutes.`,
+      ...(process.env.NODE_ENV !== "production" && { otp }),
     };
   },
 
@@ -149,32 +172,13 @@ export const verificationService = {
       throw new ConflictError("Phone number is already verified.");
     }
 
-    if (!user.emailVerified) {
-      throw new BadRequestError(
-        "Please verify your email first before verifying your phone."
-      );
-    }
+    return verificationService.initiatePhoneVerification(userId, user.phoneNumber);
+  },
 
-    await verificationRepository.expirePrevious(userId, "PHONE");
-
-    const otp = generateCode(6);
-    const expiresAt = new Date(
-      Date.now() + PHONE_OTP_EXPIRY_MINUTES * 60 * 1000
-    );
-
-    await verificationRepository.create({
-      userId,
-      type: "PHONE",
-      code: otp,
-      expiresAt,
-    });
-
-    await notificationProvider.sendPhoneOtp(user.phoneNumber, otp);
-
-    return {
-      message: `OTP sent to ${user.phoneNumber}. Valid for ${PHONE_OTP_EXPIRY_MINUTES} minutes.`,
-      ...(process.env.NODE_ENV !== "production" && { otp }),
-    };
+  async verifyPhoneByNumber(phoneNumber: string, otp: string) {
+    const user = await verificationRepository.findUserByPhone(phoneNumber);
+    if (!user) throw new NotFoundError("User not found.");
+    return verificationService.verifyPhone(user.id, otp);
   },
 
   /**
@@ -245,6 +249,7 @@ export const verificationService = {
 
     if (type === "EMAIL") {
       if (user.emailVerified) throw new ConflictError("Email is already verified.");
+      if (!user.email) throw new BadRequestError("No email on this account.");
       return verificationService.initiateEmailVerification(userId, user.email);
     }
 

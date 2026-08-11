@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import AfricasTalking from "africastalking";
+import { hasPostmark, sendViaPostmark } from "../../lib/postmark";
 
 /**
  * ─── Lazy-initialised clients ────────────────────────────────────────────────
@@ -60,6 +61,18 @@ export const notificationProvider = {
    * Falls back to console log if RESEND_API_KEY is not set.
    */
   async sendEmailVerification(email: string, code: string): Promise<void> {
+    // Prefer Postmark if configured
+    if (hasPostmark()) {
+      try {
+        await sendViaPostmark({ to: email, html: buildEmailHtml(code) });
+        console.log(`[EMAIL] Verification email sent to ${email} via Postmark`);
+        return;
+      } catch (err) {
+        console.error("[EMAIL] Postmark error:", err);
+        // fallthrough to try Resend
+      }
+    }
+
     const client = getResendClient();
 
     if (!client) {
@@ -90,7 +103,7 @@ export const notificationProvider = {
       throw new Error(`Failed to send verification email: ${error.message}`);
     }
 
-    console.log(`[EMAIL] Verification email sent to ${email}`);
+    console.log(`[EMAIL] Verification email sent to ${email} via Resend`);
   },
 
   /**
