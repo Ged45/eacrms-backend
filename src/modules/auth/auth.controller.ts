@@ -74,11 +74,7 @@ export const authController = {
           validation.data
         );
 
-      return res.status(200).json({
-        success: true,
-        message: "Login successful.",
-        data: result,
-      });
+      return res.status(200).json(result);
     } catch (error) {
       next(error);
     }

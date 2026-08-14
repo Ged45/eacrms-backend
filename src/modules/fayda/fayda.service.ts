@@ -8,6 +8,7 @@ import { BadRequestError } from "../../errors/BadRequestError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { ConflictError } from "../../errors/ConflictError";
 import prisma from "../../lib/prisma";
+import { issueFaydaVerificationToken } from "../../utils/auth-contract";
 
 const OTP_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
@@ -128,6 +129,98 @@ export const faydaService = {
    * System validates it, fetches demographic data, cross-checks,
    * and advances status to FAYDA_VERIFIED.
    */
+  async initiateStateless(nin: string, requesterId: string) {
+    const otp = await faydaMockGateway.sendOtp(nin);
+    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const verification = await faydaRepository.createVerification({
+      nin,
+      otp,
+      otpExpiresAt,
+    });
+
+    await faydaRepository.updateStatus(verification.id, "OTP_SENT");
+
+    await auditService.log({
+      userId: requesterId,
+      action: AuditActions.FAYDA_VERIFY_INITIATED,
+      entity: "FaydaVerification",
+      entityId: verification.id,
+      details: { nin },
+    });
+
+    return {
+      verificationId: verification.id,
+      message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+      ...(process.env.NODE_ENV !== "production" && { otp }),
+    };
+  },
+
+  async confirmStatelessOtp(verificationId: string | undefined, otp: string | undefined, requesterId: string) {
+    if (!verificationId) {
+      throw new BadRequestError("Verification ID is required.");
+    }
+
+    if (!otp) {
+      throw new BadRequestError("OTP is required.");
+    }
+
+    const verification = await faydaRepository.findById(verificationId);
+    if (!verification) throw new NotFoundError("Verification record not found.");
+
+    if (verification.status === "CONFIRMED") {
+      throw new ConflictError("This verification has already been confirmed.");
+    }
+
+    if (verification.status === "FAILED" || verification.status === "EXPIRED") {
+      throw new BadRequestError("This verification has expired or failed. Please initiate a new one.");
+    }
+
+    if (verification.otpExpiresAt < new Date()) {
+      await faydaRepository.updateStatus(verification.id, "EXPIRED");
+      throw new BadRequestError("OTP has expired. Please initiate a new verification.");
+    }
+
+    if (verification.attempts >= MAX_ATTEMPTS) {
+      await faydaRepository.updateStatus(verification.id, "FAILED");
+      throw new BadRequestError("Maximum OTP attempts exceeded.");
+    }
+
+    if (verification.otp !== otp) {
+      await faydaRepository.incrementAttempts(verification.id, verification.attempts + 1);
+      const remaining = MAX_ATTEMPTS - verification.attempts - 1;
+      throw new BadRequestError(`Incorrect OTP. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`);
+    }
+
+    const demographicData = await faydaMockGateway.verifyOtpAndGetData(verification.nin);
+    const verificationToken = issueFaydaVerificationToken({
+      nin: verification.nin,
+      firstName: demographicData.firstName,
+      lastName: demographicData.lastName,
+      dateOfBirth: demographicData.dateOfBirth,
+      gender: demographicData.gender,
+      phoneNumber: demographicData.phoneNumber,
+      fanNumber: demographicData.nin,
+    });
+
+    await faydaRepository.updateStatus(verification.id, "CONFIRMED", {
+      verifiedData: demographicData as any,
+    });
+
+    await auditService.log({
+      userId: requesterId,
+      action: AuditActions.FAYDA_VERIFY_CONFIRMED,
+      entity: "FaydaVerification",
+      entityId: verification.id,
+      details: { nin: verification.nin, demographicData },
+    });
+
+    return {
+      message: "Fayda verification successful.",
+      demographicData,
+      verificationToken,
+    };
+  },
+
   async confirmOtp(verificationId: string, otp: string, requesterId: string) {
     const verification = await faydaRepository.findById(verificationId);
     if (!verification) throw new NotFoundError("Verification record not found.");
@@ -196,9 +289,20 @@ export const faydaService = {
         details: { nin: verification.nin, demographicData },
       });
 
+      const verificationToken = issueFaydaVerificationToken({
+        nin: verification.nin,
+        firstName: demographicData.firstName,
+        lastName: demographicData.lastName,
+        dateOfBirth: demographicData.dateOfBirth,
+        gender: demographicData.gender,
+        phoneNumber: demographicData.phoneNumber,
+        fanNumber: demographicData.nin,
+      });
+
       return {
         message: "Fayda verification successful. Athlete status updated to FAYDA_VERIFIED.",
         demographicData,
+        verificationToken,
       };
     }
 
@@ -221,9 +325,20 @@ export const faydaService = {
         details: { nin: verification.nin, demographicData },
       });
 
+      const verificationToken = issueFaydaVerificationToken({
+        nin: verification.nin,
+        firstName: demographicData.firstName,
+        lastName: demographicData.lastName,
+        dateOfBirth: demographicData.dateOfBirth,
+        gender: demographicData.gender,
+        phoneNumber: demographicData.phoneNumber,
+        fanNumber: demographicData.nin,
+      });
+
       return {
         message: "Fayda verification successful. Coach status updated to FAYDA_VERIFIED.",
         demographicData,
+        verificationToken,
       };
     }
 

@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import { RegistrationSource, AthleteStatus } from "@prisma/client";
 
 import { athleteRepository } from "./athlete.repository";
-import { CreateAthleteDTO } from "./dto/create-athlete.dto";
+import { AthleteRegistrationInput, CreateAthleteDTO } from "./dto/create-athlete.dto";
 
 import { auditService } from "../audit/audit.service";
 import { AuditActions } from "../../constants/audit-actions";
@@ -23,6 +23,10 @@ export class AthleteService {
     request: Request,
     options?: { registeredById?: string }
   ) {
+    if (!data.email || !data.password || !data.firstName || !data.lastName || !data.dateOfBirth || !data.gender || !data.nationality) {
+      throw new BadRequestError("Missing required athlete registration fields.");
+    }
+
     /**
      * Check duplicate email
      */
@@ -86,13 +90,22 @@ export class AthleteService {
       ? RegistrationSource.CLUB_ADMIN
       : RegistrationSource.SELF;
 
+    const athletePayload: AthleteRegistrationInput = {
+      ...data,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      password: hashedPassword,
+      phoneNumber: data.phoneNumber,
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
+      nationality: data.nationality,
+      registrationSource,
+      registeredById,
+    };
+
     const athlete =
-      await athleteRepository.register({
-        ...data,
-        password: hashedPassword,
-        registrationSource,
-        registeredById,
-      });
+      await athleteRepository.register(athletePayload);
 
     /**
      * Create audit log

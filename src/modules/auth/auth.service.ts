@@ -12,6 +12,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../../utils/jwt";
+import { buildLoginResponse } from "../../utils/auth-contract";
 
 import { AuditActions } from "../../constants/audit-actions";
 import { normalizePhoneNumber } from "../../utils/phone";
@@ -135,20 +136,18 @@ export const authService = {
       userAgent: metadata?.userAgent,
     });
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        status: user.status,
-        roles: user.roles.map((r) => r.role.name),
-      },
+    const roles = user.roles.map((r) => r.role.name);
 
+    return buildLoginResponse({
+      userId: user.id,
+      email: user.email ?? "",
+      firstName: user.firstName,
+      lastName: user.lastName,
+      status: user.status,
+      roles,
       accessToken,
-
       refreshToken,
-    };
+    });
   },
 
   /**
