@@ -6,6 +6,7 @@ import {
   issueFaydaVerificationToken,
   verifyFaydaVerificationToken,
 } from "../src/utils/auth-contract";
+import { auditService } from "../src/modules/audit/audit.service";
 
 test("login response includes mobile contract fields", () => {
   const result = buildLoginResponse({
@@ -51,4 +52,20 @@ test("fayda verification token contains demographic data and expiry", () => {
   assert.equal(decoded.firstName, "Abebe");
   assert.equal(decoded.gender, "MALE");
   assert.ok(decoded.exp! > Math.floor(Date.now() / 1000));
+});
+
+test("system pseudo-user audit entries are mapped to the seeded admin user", async () => {
+  const result = await auditService.log({
+    userId: "system",
+    action: "FAYDA_VERIFY_INITIATED",
+    entity: "FaydaVerification",
+    entityId: "verification-system-test",
+    details: { nin: "ETH-19950810-001" },
+  });
+
+  assert.ok(result);
+  assert.notEqual(result.userId, "system");
+  assert.equal(result.action, "FAYDA_VERIFY_INITIATED");
+  assert.equal(result.entity, "FaydaVerification");
+  assert.equal((result.newValue as { nin: string }).nin, "ETH-19950810-001");
 });
