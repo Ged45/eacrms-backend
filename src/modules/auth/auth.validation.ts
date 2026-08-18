@@ -1,12 +1,11 @@
 import { z } from "zod";
 export const RegisterSchema = z.object({
-
-
-email: z
-  .string()
-  .trim()
-  .toLowerCase()
-  .email("Invalid email address"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address")
+    .optional(),
 
   password: z
   .string()
@@ -25,23 +24,26 @@ email: z
   .min(2)
   .max(50),
 
-  phoneNumber: z
-  .string()
-  .trim()
-  .optional()
-  });
+  phoneNumber: z.string().trim().min(7, "Invalid phone number").optional(),
+}).refine((data) => data.email || data.phoneNumber, {
+  message: "Email or phone number is required.",
+  path: ["email"],
+});
 
-  export const LoginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email(),
+export const LoginSchema = z.object({
+  identifier: z.string().trim().min(1, "Email or phone number is required.").optional(),
+  email: z.string().trim().toLowerCase().email("Invalid email address").optional(),
 
   password: z
     .string()
     .min(1, "Password is required"),
-});
+}).refine((data) => data.identifier || data.email, {
+  message: "Email or phone number is required.",
+  path: ["identifier"],
+}).transform((data) => ({
+  identifier: data.identifier ?? data.email!,
+  password: data.password,
+}));
 
 export type RegisterDTO = z.infer<typeof RegisterSchema>;
 export type LoginDTO = z.infer<typeof LoginSchema>;

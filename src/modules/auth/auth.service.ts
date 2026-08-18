@@ -12,8 +12,10 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../../utils/jwt";
+import { buildLoginResponse } from "../../utils/auth-contract";
 
 import { AuditActions } from "../../constants/audit-actions";
+import { normalizePhoneNumber } from "../../utils/phone";
 
 const SALT_ROUNDS = 12;
 
@@ -32,12 +34,17 @@ export const authService = {
     data: RegisterDTO,
     metadata?: RequestMetadata
   ) {
-    const existingUser = await authRepository.findUserByEmail(
-      data.email
-    );
+    const phoneNumber = data.phoneNumber
+      ? normalizePhoneNumber(data.phoneNumber)
+      : undefined;
+    const existingUser = data.email
+      ? await authRepository.findUserByEmail(data.email)
+      : phoneNumber
+        ? await authRepository.findUserByPhone(phoneNumber)
+        : null;
 
     if (existingUser) {
-      throw new Error("Email already exists.");
+      throw new Error("Email or phone number already exists.");
     }
 
     const hashedPassword = await bcrypt.hash(
@@ -50,16 +57,15 @@ export const authService = {
       password: hashedPassword,
       firstName: data.firstName,
       lastName: data.lastName,
-      phoneNumber: data.phoneNumber,
+      phoneNumber,
       roleName: "ATHLETE",
       ipAddress: metadata?.ipAddress,
       userAgent: metadata?.userAgent,
     });
 
-    const verification = await verificationService.initiateEmailVerification(
-      user.id,
-      user.email
-    );
+    const verification = user.email
+      ? await verificationService.initiateEmailVerification(user.id, user.email)
+      : await verificationService.initiatePhoneVerification(user.id, user.phoneNumber!);
 
     return {
       id: user.id,
@@ -82,9 +88,12 @@ export const authService = {
     data: LoginDTO,
     metadata?: RequestMetadata
   ) {
-    const user = await authRepository.findUserByEmail(
-      data.email
-    );
+    const identifier = data.identifier.includes("@")
+      ? data.identifier.trim().toLowerCase()
+      : normalizePhoneNumber(data.identifier);
+    const user = identifier.includes("@")
+      ? await authRepository.findUserByEmail(identifier.toLowerCase())
+      : await authRepository.findUserByPhone(identifier);
 
     if (!user) {
       throw new Error("Invalid email or password.");
@@ -101,9 +110,7 @@ export const authService = {
 
     if (user.status !== UserStatus.ACTIVE) {
       throw new Error(
-        "Your account is not active. Please verify your email" +
-        (user.phoneNumber ? " and phone number" : "") +
-        " to activate your account."
+        "Your account is not active. Please verify your registered contact method."
       );
     }
 
@@ -129,20 +136,18 @@ export const authService = {
       userAgent: metadata?.userAgent,
     });
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        status: user.status,
-        roles: user.roles.map((r) => r.role.name),
-      },
+    const roles = user.roles.map((r) => r.role.name);
 
+    return buildLoginResponse({
+      userId: user.id,
+      email: user.email ?? "",
+      firstName: user.firstName,
+      lastName: user.lastName,
+      status: user.status,
+      roles,
       accessToken,
-
       refreshToken,
-    };
+    });
   },
 
   /**

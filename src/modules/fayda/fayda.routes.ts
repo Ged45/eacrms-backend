@@ -7,6 +7,19 @@ import { initiateVerificationSchema, confirmOtpSchema } from "./fayda.validation
 
 const router = Router();
 
+// Stateless self-registration flow (mobile/web before athlete exists)
+router.post(
+  "/fayda/initiate",
+  validate(initiateVerificationSchema),
+  faydaController.initiateStateless
+);
+
+router.post(
+  "/fayda/verify/confirm",
+  validate(confirmOtpSchema),
+  faydaController.confirmStatelessOtp
+);
+
 // Athlete fayda routes (nested under /athletes/:athleteId/fayda)
 router.post(
   "/athletes/:athleteId/fayda/initiate",

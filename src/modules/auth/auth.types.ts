@@ -1,5 +1,5 @@
 export interface RegisterDTO {
-  email: string;
+  email?: string;
   password: string;
   firstName: string;
   lastName: string;
@@ -9,7 +9,7 @@ export interface RegisterDTO {
 }
 
 export interface LoginDTO {
-  email: string;
+  identifier: string;
   password: string;
 }
 

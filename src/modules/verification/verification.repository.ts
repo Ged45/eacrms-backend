@@ -70,6 +70,10 @@ export const verificationRepository = {
     return prisma.user.findUnique({ where: { email } });
   },
 
+  findUserByPhone(phoneNumber: string) {
+    return prisma.user.findUnique({ where: { phoneNumber } });
+  },
+
   activateUser(userId: string) {
     return prisma.user.update({
       where: { id: userId },

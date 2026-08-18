@@ -15,6 +15,14 @@ export const verificationController = {
     return res.status(200).json({ success: true, data: result });
   }),
 
+  verifyPhoneByNumber: asyncHandler(async (req: Request, res: Response) => {
+    const result = await verificationService.verifyPhoneByNumber(
+      req.body.phoneNumber,
+      req.body.otp
+    );
+    return res.status(200).json({ success: true, data: result });
+  }),
+
   /**
    * POST /auth/verify/phone/request
    * Authenticated — sends OTP to the user's registered phone

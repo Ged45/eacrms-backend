@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 export interface JwtPayload {
     userId: string;
-    email: string;
+    email?: string | null;
     roles: string[];
 }
 

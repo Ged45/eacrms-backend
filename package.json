@@ -36,6 +36,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.3",
     "@prisma/client": "^6.19.3",
     "africastalking": "^0.8.3",
     "bcrypt": "^6.0.0",
@@ -43,8 +44,12 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "postmark": "^5.1.0",
     "prisma": "^6.19.3",
+<<<<<<< HEAD
     "resend": "^6.18.1",
+=======
+>>>>>>> e313b70c07472df5230401ec24da0f76c0ce1709
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "tsx": "^4.23.1",

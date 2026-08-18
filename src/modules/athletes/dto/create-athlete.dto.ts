@@ -2,25 +2,37 @@ import { Gender, DominantHand, DominantFoot, BloodType, RegistrationSource } fro
 
 export interface CreateAthleteDTO {
 
-    firstName: string;
+    firstName?: string;
 
-    lastName: string;
+    lastName?: string;
 
-    email: string;
+    email?: string;
 
-    password: string;
+    password?: string;
 
     phoneNumber?: string;
 
-    dateOfBirth: Date;
+    faydaVerificationToken?: string;
 
-    gender: Gender;
+    fanNumber?: string;
 
-    nationality: string;
+    dateOfBirth?: Date;
+
+    gender?: Gender;
+
+    nationality?: string;
+
+    sportIds?: string[];
 
     sportId?: string;
 
     clubId?: string;
+
+    clubName?: string;
+
+    region?: string;
+
+    emergencyContactPhone?: string;
 
     position?: string;
 
@@ -40,3 +52,21 @@ export interface CreateAthleteDTO {
     registeredById?: string;
 
 }
+
+export type AthleteRegistrationInput = Required<Pick<CreateAthleteDTO,
+    "firstName" |
+    "lastName" |
+    "email" |
+    "password" |
+    "dateOfBirth" |
+    "gender" |
+    "nationality"
+>> & Omit<CreateAthleteDTO,
+    "firstName" |
+    "lastName" |
+    "email" |
+    "password" |
+    "dateOfBirth" |
+    "gender" |
+    "nationality"
+>;

@@ -99,15 +99,27 @@ const options: swaggerJsdoc.Options = {
         },
         LoginResponse: {
           type: "object",
+          description: "Mobile/login contract returned directly by POST /auth/login.",
           properties: {
-            success: { type: "boolean", example: true },
-            message: { type: "string", example: "Login successful." },
-            data: {
+            token: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+            accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+            userId: { type: "string", example: "clxyz123" },
+            userRole: { type: "string", example: "athlete" },
+            userName: { type: "string", example: "Abebe Bikila" },
+            fanNumber: { type: "string", nullable: true, example: "ET-19950810-001" },
+            clubId: { type: "string", nullable: true, example: "club_456" },
+            clubName: { type: "string", nullable: true, example: "Addis Ababa Athletics Club" },
+            refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+            status: { type: "string", example: "ACTIVE" },
+            user: {
               type: "object",
               properties: {
-                user:         { $ref: "#/components/schemas/UserPublic" },
-                accessToken:  { type: "string", example: "eyJhbGci..." },
-                refreshToken: { type: "string", example: "eyJhbGci..." },
+                id: { type: "string", example: "clxyz123" },
+                email: { type: "string", example: "user@example.com" },
+                firstName: { type: "string", example: "Abebe" },
+                lastName: { type: "string", example: "Bikila" },
+                status: { type: "string", example: "ACTIVE" },
+                roles: { type: "array", items: { type: "string" }, example: ["ATHLETE"] },
               },
             },
           },
@@ -236,22 +248,28 @@ const options: swaggerJsdoc.Options = {
           type: "object",
           required: ["firstName", "lastName", "email", "password", "dateOfBirth", "gender", "nationality"],
           properties: {
-            firstName:    { type: "string", example: "Abebe" },
-            lastName:     { type: "string", example: "Bikila" },
-            email:        { type: "string", format: "email", example: "abebe@example.com" },
-            password:     { type: "string", minLength: 8, example: "Password123" },
-            phoneNumber:  { type: "string", example: "0911000002" },
-            dateOfBirth:  { type: "string", format: "date", example: "1995-06-15" },
-            gender:       { type: "string", enum: ["MALE", "FEMALE"] },
-            nationality:  { type: "string", example: "Ethiopian" },
-            sportId:      { type: "string", example: "clxyz..." },
-            clubId:       { type: "string", example: "clxyz..." },
-            position:     { type: "string", example: "Forward" },
-            height:       { type: "number", example: 175 },
-            weight:       { type: "number", example: 68 },
-            dominantHand: { type: "string", enum: ["LEFT", "RIGHT", "AMBIDEXTROUS"] },
-            dominantFoot: { type: "string", enum: ["LEFT", "RIGHT", "BOTH"] },
-            bloodType:    { type: "string", enum: ["A_POSITIVE", "A_NEGATIVE", "B_POSITIVE", "B_NEGATIVE", "AB_POSITIVE", "AB_NEGATIVE", "O_POSITIVE", "O_NEGATIVE"] },
+            firstName:              { type: "string", example: "Abebe" },
+            lastName:               { type: "string", example: "Bikila" },
+            email:                  { type: "string", format: "email", example: "abebe@example.com" },
+            password:               { type: "string", minLength: 8, example: "Password123" },
+            phoneNumber:            { type: "string", example: "0911000002" },
+            faydaVerificationToken: { type: "string", nullable: true, example: "eyJhbGciOi..." },
+            fanNumber:              { type: "string", nullable: true, example: "ET-19950810-001" },
+            dateOfBirth:            { type: "string", format: "date", example: "1995-06-15" },
+            gender:                 { type: "string", enum: ["MALE", "FEMALE"] },
+            nationality:            { type: "string", example: "Ethiopian" },
+            sportIds:               { type: "array", items: { type: "string" }, example: ["sp_123", "sp_456"] },
+            sportId:                { type: "string", example: "clxyz..." },
+            clubId:                 { type: "string", example: "clxyz..." },
+            clubName:               { type: "string", example: "Addis Ababa Athletics Club" },
+            region:                 { type: "string", example: "Addis Ababa" },
+            emergencyContactPhone:  { type: "string", example: "+251911000000" },
+            position:               { type: "string", example: "Forward" },
+            height:                 { type: "number", example: 175 },
+            weight:                 { type: "number", example: 68 },
+            dominantHand:           { type: "string", enum: ["LEFT", "RIGHT", "AMBIDEXTROUS"] },
+            dominantFoot:           { type: "string", enum: ["LEFT", "RIGHT", "BOTH"] },
+            bloodType:              { type: "string", enum: ["A_POSITIVE", "A_NEGATIVE", "B_POSITIVE", "B_NEGATIVE", "AB_POSITIVE", "AB_NEGATIVE", "O_POSITIVE", "O_NEGATIVE"] },
           },
         },
         AthleteProfile: {
@@ -337,9 +355,10 @@ const options: swaggerJsdoc.Options = {
         // Fayda
         FaydaInitiateRequest: {
           type: "object",
-          required: ["nin"],
+          description: "Public self-registration Fayda initiation. Either nin or FAN is accepted.",
           properties: {
             nin: { type: "string", example: "ETH-19950810-001", description: "Fayda National ID Number" },
+            FAN: { type: "string", example: "ETH-19950810-001", description: "Legacy/alternate identifier accepted by the backend" },
           },
         },
         FaydaInitiateResponse: {
@@ -360,6 +379,7 @@ const options: swaggerJsdoc.Options = {
           type: "object",
           required: ["otp"],
           properties: {
+            verificationId: { type: "string", example: "clxyz123", description: "Required for the stateless flow before account creation." },
             otp: { type: "string", minLength: 6, maxLength: 6, example: "483921" },
           },
         },
@@ -519,7 +539,7 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ["Auth"],
           summary: "Login",
-          description: "Returns access + refresh tokens. Account must be ACTIVE.",
+          description: "Returns the mobile-friendly auth payload expected by the app: token, userRole, refreshToken, club metadata and user profile. Account must be ACTIVE.",
           security: [],
           requestBody: {
             required: true,
@@ -528,6 +548,64 @@ const options: swaggerJsdoc.Options = {
           responses: {
             200: { description: "Login successful", content: { "application/json": { schema: { $ref: "#/components/schemas/LoginResponse" } } } },
             400: { description: "Invalid credentials or account not active", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/fayda/initiate": {
+        post: {
+          tags: ["Fayda Verification"],
+          summary: "Initiate stateless Fayda verification",
+          description: "Public self-registration step used before an athlete account exists. Accepts nin or FAN, then sends an OTP to the registered phone and returns a verificationId.",
+          security: [],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaInitiateRequest" } } } },
+          responses: {
+            200: { description: "OTP sent", content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaInitiateResponse" } } } },
+            400: { description: "Validation error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/fayda/verify/confirm": {
+        post: {
+          tags: ["Fayda Verification"],
+          summary: "Confirm stateless Fayda OTP",
+          description: "Public verification step for self-registration. The response includes the verified demographic data and a verificationToken that can be used in the athlete registration payload.",
+          security: [],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaConfirmRequest" } } } },
+          responses: {
+            200: {
+              description: "Verification successful",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          message: { type: "string", example: "Fayda verification successful." },
+                          demographicData: {
+                            type: "object",
+                            properties: {
+                              nin: { type: "string", example: "ETH-19950810-001" },
+                              firstName: { type: "string", example: "Fayda" },
+                              lastName: { type: "string", example: "Verified" },
+                              dateOfBirth: { type: "string", example: "1995-01-01" },
+                              gender: { type: "string", example: "MALE" },
+                              phoneNumber: { type: "string", example: "+251911000000" },
+                            },
+                          },
+                          verificationToken: { type: "string", example: "eyJhbGciOi..." },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Wrong OTP / expired / max attempts", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Verification record not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            409: { description: "Already confirmed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

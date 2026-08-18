@@ -5,6 +5,27 @@ import { BadRequestError } from "../../errors/BadRequestError";
 
 export const faydaController = {
   /**
+   * POST /api/v1/fayda/initiate
+   */
+  initiateStateless: asyncHandler(async (req: Request, res: Response) => {
+    const body = req.body as { nin?: string; FAN?: string };
+    const result = await faydaService.initiateStateless(body.nin ?? body.FAN ?? "", "system");
+    return res.status(200).json({ success: true, data: result });
+  }),
+
+  /**
+   * POST /api/v1/fayda/verify/confirm
+   */
+  confirmStatelessOtp: asyncHandler(async (req: Request, res: Response) => {
+    const result = await faydaService.confirmStatelessOtp(
+      req.body.verificationId as string | undefined,
+      req.body.otp as string | undefined,
+      "system"
+    );
+    return res.status(200).json({ success: true, data: result });
+  }),
+
+  /**
    * POST /api/v1/athletes/:athleteId/fayda/initiate
    */
   initiateForAthlete: asyncHandler(async (req: Request, res: Response) => {

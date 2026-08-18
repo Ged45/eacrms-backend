@@ -157,7 +157,7 @@ enum VerificationStatus {
 
 model User {
   id          String     @id @default(cuid())
-  email       String     @unique
+  email       String?    @unique
   password    String
   firstName   String
   lastName    String

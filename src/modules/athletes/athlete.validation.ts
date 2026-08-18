@@ -18,22 +18,40 @@ z.object({
     phoneNumber:
         z.string().optional(),
 
+    faydaVerificationToken:
+        z.string().optional(),
+
+    fanNumber:
+        z.string().optional(),
+
     dateOfBirth:
-        z.coerce.date(),
+        z.coerce.date().optional(),
 
     gender:
         z.enum([
             "MALE",
             "FEMALE",
-        ]),
+        ]).optional(),
 
     nationality:
-        z.string().min(2),
+        z.string().min(2).optional(),
+
+    sportIds:
+        z.array(z.string()).optional(),
 
     sportId:
         z.string().optional(),
 
     clubId:
+        z.string().optional(),
+
+    clubName:
+        z.string().optional(),
+
+    region:
+        z.string().optional(),
+
+    emergencyContactPhone:
         z.string().optional(),
 
     position:

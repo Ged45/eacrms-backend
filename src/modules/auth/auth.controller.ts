@@ -67,11 +67,16 @@ export const authController = {
         await authService.login(
           validation.data
         );
+<<<<<<< HEAD
       return res.status(200).json({
         success: true,
         message: "Login successful.",
         data: result,
       });
+=======
+
+      return res.status(200).json(result);
+>>>>>>> e313b70c07472df5230401ec24da0f76c0ce1709
     } catch (error) {
       next(error);
     }

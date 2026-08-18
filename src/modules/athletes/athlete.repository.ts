@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient, AthleteStatus } from "@prisma/client";
 import prisma from "../../lib/prisma";
-import { CreateAthleteDTO } from "./dto/create-athlete.dto";
+import { AthleteRegistrationInput } from "./dto/create-athlete.dto";
 
 export class AthleteRepository {
   /**
@@ -12,7 +12,7 @@ export class AthleteRepository {
    *
    * All operations execute inside a single transaction.
    */
-  async register(data: CreateAthleteDTO) {
+  async register(data: AthleteRegistrationInput) {
     return prisma.$transaction(async (tx) => {
       // Find ATHLETE role
       const athleteRole = await tx.role.findUnique({
