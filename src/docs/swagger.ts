@@ -152,7 +152,7 @@ const options: swaggerJsdoc.Options = {
         // Athlete
         AthleteRequest: {
           type: "object",
-          required: ["firstName", "lastName", "email", "password", "dateOfBirth", "gender", "nationality"],
+          required: ["email", "password"],
           properties: {
             firstName:              { type: "string", example: "Abebe" },
             lastName:               { type: "string", example: "Bikila" },
