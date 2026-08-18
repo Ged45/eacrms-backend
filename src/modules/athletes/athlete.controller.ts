@@ -244,6 +244,55 @@ export class AthleteController {
     const data = await athleteService.getApplications(req.user.userId);
     return res.status(200).json({ success: true, data });
   });
+
+  // ─── Public Fan-Facing Handlers ──────────────────────────────────────────
+
+  /**
+   * GET /api/v1/athletes/public
+   * Public endpoint for fan browsing — spotlight carousel + athlete directory.
+   */
+  getPublicList = asyncHandler(async (req: Request, res: Response) => {
+    const featured = req.query.featured === "true" ? true : req.query.featured === "false" ? false : undefined;
+    const status = (req.query.status as string) || "ACTIVE";
+    const search = req.query.search as string | undefined;
+    const club = req.query.club as string | undefined;
+    const region = req.query.region as string | undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 8;
+
+    const result = await athleteService.getPublicAthletes({
+      featured,
+      status,
+      search,
+      club,
+      region,
+      page,
+      limit,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result.items,
+      meta: {
+        total: result.total,
+        limit,
+        page,
+      },
+    });
+  });
+
+  /**
+   * GET /api/v1/athletes/public/:id
+   * Public endpoint for athlete detail modal / profile screen.
+   */
+  getPublicById = asyncHandler(async (req: Request, res: Response) => {
+    const athlete = await athleteService.getPublicAthleteById(req.params.id as string);
+
+    return res.status(200).json({
+      success: true,
+      data: athlete,
+    });
+  });
 }
 
 export const athleteController = new AthleteController();

@@ -282,6 +282,84 @@ const options: swaggerJsdoc.Options = {
           },
         },
 
+        PublicAthlete: {
+          type: "object",
+          description: "Sanitized athlete data for public fan browsing.",
+          properties: {
+            id:             { type: "string" },
+            user:           { type: "object", properties: { id: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" }, status: { type: "string" } } },
+            name:           { type: "string", example: "Abebe Bikila" },
+            amharicName:    { type: "string", nullable: true },
+            photoUrl:       { type: "string", nullable: true },
+            achievement:    { type: "string", nullable: true },
+            primaryEvent:   { type: "string", example: "Marathon" },
+            clubId:         { type: "string", nullable: true },
+            clubName:       { type: "string" },
+            faydaVerified:  { type: "boolean" },
+            personalBest:   { type: "string", nullable: true },
+            ageTier:        { type: "string", enum: ["Senior", "U20", "Junior", "Youth"] },
+            gender:         { type: "string", enum: ["MALE", "FEMALE"] },
+            quote:          { type: "string", nullable: true },
+          },
+        },
+        PublicAthleteDetail: {
+          type: "object",
+          description: "Full public athlete profile for detail modal.",
+          properties: {
+            id:             { type: "string" },
+            name:           { type: "string" },
+            amharicName:    { type: "string", nullable: true },
+            photoUrl:       { type: "string", nullable: true },
+            faydaFin:       { type: "string", nullable: true },
+            faydaVerified:  { type: "boolean" },
+            faydaVerifiedAt:{ type: "string", format: "date-time", nullable: true },
+            primaryEvent:   { type: "string" },
+            clubId:         { type: "string", nullable: true },
+            clubName:       { type: "string" },
+            region:         { type: "string", nullable: true },
+            ageTier:        { type: "string", enum: ["Senior", "U20", "Junior", "Youth"] },
+            gender:         { type: "string", enum: ["MALE", "FEMALE"] },
+            dateOfBirth:    { type: "string", format: "date" },
+            nationality:    { type: "string" },
+            pb:             { type: "string" },
+            personalBests:  { type: "array", items: { type: "object", properties: { event: { type: "string" }, mark: { type: "string" }, date: { type: "string", format: "date", nullable: true }, venue: { type: "string", nullable: true } } } },
+            achievement:    { type: "string", nullable: true },
+            achievements:   { type: "array", items: { type: "string" } },
+            quote:          { type: "string", nullable: true },
+            status:         { type: "string" },
+          },
+        },
+        NewsArticle: {
+          type: "object",
+          description: "Public news article list item.",
+          properties: {
+            id:               { type: "string" },
+            title:            { type: "string" },
+            date:             { type: "string", format: "date-time" },
+            category:         { type: "string" },
+            shortDescription: { type: "string" },
+            imageUrl:         { type: "string", nullable: true },
+            author:           { type: "string" },
+            isFeatured:       { type: "boolean" },
+          },
+        },
+        NewsArticleDetail: {
+          type: "object",
+          description: "Full news article content.",
+          properties: {
+            id:               { type: "string" },
+            title:            { type: "string" },
+            date:             { type: "string", format: "date-time" },
+            category:         { type: "string" },
+            shortDescription: { type: "string" },
+            content:          { type: "string" },
+            imageUrl:         { type: "string", nullable: true },
+            insideImages:     { type: "array", items: { type: "string" } },
+            author:           { type: "string" },
+            isFeatured:       { type: "boolean" },
+          },
+        },
+
         // Coach
         CoachRequest: {
           type: "object",
@@ -1146,6 +1224,127 @@ const options: swaggerJsdoc.Options = {
                 },
               },
             },
+          },
+        },
+      },
+      // ── Public Fan-Facing Athlete Endpoints ─────────────────────────────────
+      "/athletes/public": {
+        get: {
+          tags: ["Athletes", "Public"],
+          summary: "List athletes (public)",
+          description: "Public endpoint for fan browsing. Returns sanitized active athlete data for the spotlight carousel and athlete directory. No authentication required.",
+          parameters: [
+            { name: "featured", in: "query", schema: { type: "boolean" }, description: "Filter only spotlight/featured athletes" },
+            { name: "status", in: "query", schema: { type: "string" }, description: "Filter by status (default: ACTIVE)" },
+            { name: "search", in: "query", schema: { type: "string" }, description: "Search by name, event, or club" },
+            { name: "club", in: "query", schema: { type: "string" }, description: "Filter by club name" },
+            { name: "region", in: "query", schema: { type: "string" }, description: "Filter by region" },
+            { name: "page", in: "query", schema: { type: "integer" }, description: "Page number (default: 1)" },
+            { name: "limit", in: "query", schema: { type: "integer" }, description: "Page size (default: 8)" },
+          ],
+          responses: {
+            200: {
+              description: "Public athlete list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/PublicAthlete" } },
+                      meta: { type: "object", properties: { total: { type: "integer" }, limit: { type: "integer" }, page: { type: "integer" } } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/athletes/public/{id}": {
+        get: {
+          tags: ["Athletes", "Public"],
+          summary: "Get athlete detail (public)",
+          description: "Public endpoint for athlete detail modal and profile screen. Returns full public profile with personal bests. No authentication required.",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Unique athlete ID" },
+          ],
+          responses: {
+            200: {
+              description: "Public athlete detail",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/PublicAthleteDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: "Athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Public News Endpoints ─────────────────────────────────────────────────
+      "/news": {
+        get: {
+          tags: ["News", "Public"],
+          summary: "List news articles",
+          description: "Public endpoint for the news feed. No authentication required.",
+          parameters: [
+            { name: "search", in: "query", schema: { type: "string" }, description: "Search across title and description" },
+            { name: "category", in: "query", schema: { type: "string", enum: ["CHAMPIONSHIP", "TRAINING", "ANNOUNCEMENT", "COMMUNITY", "RECOGNITION", "GENERAL"] }, description: "Filter by category" },
+            { name: "featured", in: "query", schema: { type: "boolean" }, description: "Filter featured articles" },
+            { name: "page", in: "query", schema: { type: "integer" }, description: "Page number (default: 1)" },
+            { name: "limit", in: "query", schema: { type: "integer" }, description: "Page size (default: 10)" },
+            { name: "sort", in: "query", schema: { type: "string", enum: ["date_desc", "date_asc"] }, description: "Sort order (default: date_desc)" },
+          ],
+          responses: {
+            200: {
+              description: "News article list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/NewsArticle" } },
+                      meta: { type: "object", properties: { total: { type: "integer" }, page: { type: "integer" }, limit: { type: "integer" } } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/news/{id}": {
+        get: {
+          tags: ["News", "Public"],
+          summary: "Get news article detail",
+          description: "Public endpoint for full article view. No authentication required.",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Unique news article ID" },
+          ],
+          responses: {
+            200: {
+              description: "News article detail",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/NewsArticleDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: "News article not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

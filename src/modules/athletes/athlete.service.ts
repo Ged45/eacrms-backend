@@ -579,6 +579,76 @@ export class AthleteService {
       submissionStatus: r.status,
     }));
   }
+
+  // ─── Public Fan-Facing Methods ──────────────────────────────────────────────
+
+  /**
+   * GET /athletes/public — public athlete list for fan browsing.
+   * Returns sanitized active athlete data only.
+   */
+  async getPublicAthletes(query: {
+    featured?: boolean;
+    status?: string;
+    search?: string;
+    club?: string;
+    region?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return athleteRepository.findPublicAthletes(query);
+  }
+
+  /**
+   * GET /athletes/public/:id — public athlete detail for fan profile view.
+   * Returns a single active athlete's full public profile.
+   */
+  async getPublicAthleteById(id: string) {
+    const a = await athleteRepository.findPublicAthleteById(id);
+    if (!a) throw new NotFoundError("Athlete not found.");
+
+    const dob = new Date(a.dateOfBirth);
+    const ageYears = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    let ageTier: string;
+    if (ageYears >= 20) ageTier = "Senior";
+    else if (ageYears >= 18) ageTier = "U20";
+    else if (ageYears >= 16) ageTier = "Junior";
+    else ageTier = "Youth";
+
+    const personalBests = a.personalBests.map((pb) => ({
+      event: pb.event,
+      mark: pb.mark,
+      date: pb.date?.toISOString().split("T")[0] ?? null,
+      venue: pb.venue,
+    }));
+
+    const pbSummary = personalBests.length > 0
+      ? personalBests.map((pb) => `${pb.event}: ${pb.mark}`).join(" | ")
+      : "N/A";
+
+    return {
+      id: a.id,
+      name: `${a.user.firstName} ${a.user.lastName}`.trim(),
+      amharicName: a.amharicName ?? null,
+      photoUrl: a.photoUrl ?? null,
+      faydaFin: a.faydaNin ?? null,
+      faydaVerified: a.faydaVerified,
+      faydaVerifiedAt: a.faydaVerifiedAt?.toISOString() ?? null,
+      primaryEvent: a.primaryEvent ?? a.sport?.name ?? null,
+      clubId: a.clubId ?? null,
+      clubName: a.club?.name ?? a.clubName ?? null,
+      region: a.region ?? null,
+      ageTier,
+      gender: a.gender,
+      dateOfBirth: a.dateOfBirth.toISOString().split("T")[0],
+      nationality: a.nationality,
+      pb: pbSummary,
+      personalBests,
+      achievement: null,
+      achievements: [],
+      quote: null,
+      status: a.status,
+    };
+  }
 }
 
 export const athleteService = new AthleteService();

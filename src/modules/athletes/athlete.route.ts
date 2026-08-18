@@ -18,6 +18,19 @@ const router = Router();
 |--------------------------------------------------------------------------
 */
 
+// Public fan-facing athlete list (no auth required)
+router.get(
+    "/public",
+    athleteController.getPublicList
+);
+
+// Public fan-facing athlete detail (no auth required)
+// NOTE: This route must be defined BEFORE /:id to avoid conflicts
+router.get(
+    "/public/:id",
+    athleteController.getPublicById
+);
+
 // Club admin registers an athlete
 router.post(
     "/register/by-admin",

@@ -12,6 +12,7 @@ import eventRoutes from "../modules/events/event.routes";
 import policyRoutes from "../modules/policies/policy.routes";
 import paymentRoutes, { eventPaymentRoutes } from "../modules/payments/payment.routes";
 import metaRoutes from "../modules/meta/meta.routes";
+import newsRoutes from "../modules/news/news.routes";
 
 const router = Router();
 
@@ -39,5 +40,7 @@ router.use("/payments", paymentRoutes);
 router.use("/events", eventPaymentRoutes);
 
 router.use("/", metaRoutes);
+
+router.use("/news", newsRoutes);
 
 export default router;

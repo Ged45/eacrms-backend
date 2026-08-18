@@ -418,6 +418,117 @@ export class AthleteRepository {
   async countAppliedCompetitions(athleteId: string) {
     return prisma.eventRegistration.count({ where: { athleteId } });
   }
+
+  // ─── Public Fan-Facing Methods ─────────────────────────────────────────────
+
+  /**
+   * Public athlete list — returns only active athletes with sanitized data.
+   */
+  async findPublicAthletes(query: {
+    featured?: boolean;
+    status?: string;
+    search?: string;
+    club?: string;
+    region?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const {
+      featured,
+      status = "ACTIVE",
+      search,
+      club,
+      region,
+      page = 1,
+      limit = 8,
+    } = query;
+
+    const where: Record<string, unknown> = {
+      status,
+    };
+
+    if (search) {
+      where.OR = [
+        { user: { firstName: { contains: search, mode: "insensitive" } } },
+        { user: { lastName: { contains: search, mode: "insensitive" } } },
+        { primaryEvent: { contains: search, mode: "insensitive" } },
+        { clubName: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (club) {
+      where.OR = [
+        ...(where.OR as Array<Record<string, unknown>> || []),
+        { clubName: { contains: club, mode: "insensitive" } },
+      ];
+    }
+
+    if (region) {
+      where.region = { contains: region, mode: "insensitive" };
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.athlete.findMany({
+        where,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, status: true } },
+          club: { select: { id: true, name: true } },
+          sport: { select: { id: true, name: true } },
+          personalBests: { orderBy: { date: "desc" }, take: 1 },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.athlete.count({ where }),
+    ]);
+
+    return {
+      items: items.map((a) => {
+        const dob = new Date(a.dateOfBirth);
+        const ageYears = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        let ageTier: string;
+        if (ageYears >= 20) ageTier = "Senior";
+        else if (ageYears >= 18) ageTier = "U20";
+        else if (ageYears >= 16) ageTier = "Junior";
+        else ageTier = "Youth";
+
+        return {
+          id: a.id,
+          user: a.user,
+          name: `${a.user.firstName} ${a.user.lastName}`.trim(),
+          amharicName: a.amharicName ?? null,
+          photoUrl: a.photoUrl ?? null,
+          achievement: null,
+          primaryEvent: a.primaryEvent ?? a.sport?.name ?? null,
+          clubId: a.clubId ?? null,
+          clubName: a.club?.name ?? a.clubName ?? null,
+          faydaVerified: a.faydaVerified,
+          personalBest: a.personalBests[0]?.mark ?? null,
+          ageTier,
+          gender: a.gender,
+          quote: null,
+        };
+      }),
+      total,
+    };
+  }
+
+  /**
+   * Public athlete detail — returns a single active athlete's full public profile.
+   */
+  async findPublicAthleteById(id: string) {
+    const a = await prisma.athlete.findFirst({
+      where: { id, status: "ACTIVE" },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, status: true } },
+        club: { select: { id: true, name: true } },
+        sport: { select: { id: true, name: true } },
+        personalBests: { orderBy: [{ event: "asc" }, { date: "desc" }] },
+      },
+    });
+    return a;
+  }
 }
 
 export const athleteRepository = new AthleteRepository();
