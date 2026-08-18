@@ -121,6 +121,12 @@ const permissions = [
 
   // Fayda
   { name: "fayda:verify", description: "Verify Fayda ID" },
+
+  // News
+  { name: "news:create", description: "Create news articles" },
+  { name: "news:view", description: "View news articles" },
+  { name: "news:update", description: "Update news articles" },
+  { name: "news:delete", description: "Delete news articles" },
 ];
 
 /**
@@ -153,6 +159,10 @@ const rolePermissions: Record<string, string[]> = {
     "report:view",
     "audit:view",
     "fayda:verify",
+    "news:create",
+    "news:view",
+    "news:update",
+    "news:delete",
   ],
 
   REGIONAL_ADMIN: [

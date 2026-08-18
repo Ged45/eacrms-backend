@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
+import path from "path";
 import swaggerUi from "swagger-ui-express";
 
 import router from "./routes";
@@ -9,6 +10,9 @@ import { swaggerSpec } from "./docs/swagger";
 const app = express();
 
 app.use(express.json());
+
+// Serve uploaded files statically
+app.use("/uploads", express.static(path.resolve("uploads")));
 
 app.use("/api/v1", router);
 

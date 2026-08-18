@@ -5,6 +5,7 @@ import { clubController } from "./club.controller";
 import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/authorize.middleware";
 import { validate } from "../../middleware/validate.middleware";
+import { publicLimiter } from "../../middleware/rateLimit.middleware";
 
 import {
   registerClubSchema,
@@ -15,7 +16,24 @@ const router = Router();
 
 /**
  * ------------------------------------------------
- * Public / Club Admin Registration
+ * Public Routes (no auth required)
+ * ------------------------------------------------
+ */
+router.get(
+  "/verified",
+  publicLimiter,
+  clubController.findVerified
+);
+
+router.get(
+  "/public/:id",
+  publicLimiter,
+  clubController.findPublicById
+);
+
+/**
+ * ------------------------------------------------
+ * Club Admin Registration
  * ------------------------------------------------
  */
 router.post(
@@ -26,19 +44,13 @@ router.post(
 
 /**
  * ------------------------------------------------
- * Get Clubs
+ * Get Clubs (Authenticated)
  * ------------------------------------------------
  */
 router.get(
   "/",
   authenticate,
   clubController.findAll
-);
-
-router.get(
-  "/verified",
-  authenticate,
-  clubController.findVerified
 );
 
 /**

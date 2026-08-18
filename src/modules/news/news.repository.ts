@@ -1,4 +1,4 @@
-import { NewsCategory } from "@prisma/client";
+import { Prisma, NewsCategory } from "@prisma/client";
 import prisma from "../../lib/prisma";
 
 export interface NewsListQuery {
@@ -93,6 +93,60 @@ export class NewsRepository {
         publishedAt: true,
       },
     });
+  }
+
+  // ─── Admin Methods ──────────────────────────────────────────────────────
+
+  async findManyAdmin(query: NewsListQuery) {
+    const {
+      search,
+      category,
+      featured,
+      page = 1,
+      limit = 10,
+      sort = "date_desc",
+    } = query;
+
+    const where: Record<string, unknown> = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { shortDescription: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (category) {
+      where.category = category;
+    }
+
+    if (featured !== undefined) {
+      where.isFeatured = featured;
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.news.findMany({
+        where,
+        orderBy: { createdAt: sort === "date_asc" ? "asc" : "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.news.count({ where }),
+    ]);
+
+    return { items, total, page, limit };
+  }
+
+  async create(data: Prisma.NewsCreateInput) {
+    return prisma.news.create({ data });
+  }
+
+  async update(id: string, data: Record<string, unknown>) {
+    return prisma.news.update({ where: { id }, data });
+  }
+
+  async delete(id: string) {
+    return prisma.news.delete({ where: { id } });
   }
 }
 

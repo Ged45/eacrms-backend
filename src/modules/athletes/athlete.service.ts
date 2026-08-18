@@ -11,6 +11,7 @@ import { AuditActions } from "../../constants/audit-actions";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { BadRequestError } from "../../errors/BadRequestError";
+import { cacheGet, cacheInvalidate } from "../../lib/redis";
 
 import {
   verifyFaydaVerificationToken,
@@ -443,6 +444,10 @@ export class AthleteService {
     const updated = await athleteRepository.updateProfile(userId, updates);
     if (!updated) throw new NotFoundError("Athlete profile not found.");
 
+    // Invalidate public cache for this athlete
+    await cacheInvalidate(`athletes:public:detail:${updated.id}`);
+    await cacheInvalidate("athletes:public:list:*");
+
     return {
       id: updated.id,
       updatedFields: Object.keys(updates),
@@ -595,7 +600,9 @@ export class AthleteService {
     page?: number;
     limit?: number;
   }) {
-    return athleteRepository.findPublicAthletes(query);
+    // Cache for 5 minutes. Include query params in key for pagination/filtering.
+    const cacheKey = `athletes:public:list:${JSON.stringify(query)}`;
+    return cacheGet(cacheKey, 300, () => athleteRepository.findPublicAthletes(query));
   }
 
   /**
@@ -603,7 +610,9 @@ export class AthleteService {
    * Returns a single active athlete's full public profile.
    */
   async getPublicAthleteById(id: string) {
-    const a = await athleteRepository.findPublicAthleteById(id);
+    // Cache for 5 minutes per athlete.
+    const cacheKey = `athletes:public:detail:${id}`;
+    const a = await cacheGet(cacheKey, 300, () => athleteRepository.findPublicAthleteById(id));
     if (!a) throw new NotFoundError("Athlete not found.");
 
     const dob = new Date(a.dateOfBirth);

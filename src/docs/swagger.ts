@@ -411,14 +411,21 @@ const options: swaggerJsdoc.Options = {
         },
         ClubProfile: {
           type: "object",
+          description: "Public club profile for directory and detail views.",
           properties: {
             id:                 { type: "string" },
             name:               { type: "string" },
             shortName:          { type: "string", nullable: true },
             email:              { type: "string", nullable: true },
-            verificationStatus: { type: "string", enum: ["PENDING", "VERIFIED", "REJECTED", "SUSPENDED"] },
+            phone:              { type: "string", nullable: true },
+            address:            { type: "string", nullable: true },
             city:               { type: "string", nullable: true },
             region:             { type: "string", nullable: true },
+            logoUrl:            { type: "string", format: "uri", nullable: true },
+            licenseNumber:      { type: "string", nullable: true },
+            verificationStatus: { type: "string", enum: ["PENDING", "VERIFIED", "REJECTED", "SUSPENDED"] },
+            athleteCount:       { type: "integer", description: "Number of active athletes" },
+            coachCount:         { type: "integer", description: "Number of active coaches" },
             createdAt:          { type: "string", format: "date-time" },
           },
         },
@@ -1288,6 +1295,56 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+      // ── Athlete Profile Photo Upload ──────────────────────────────────────────
+      "/athletes/profile/photo": {
+        post: {
+          tags: ["Athletes", "Dashboard"],
+          summary: "Upload profile photo",
+          description: "Upload and set the authenticated athlete's profile photo. Requires authentication. Accepted types: JPEG, PNG, WebP, GIF. Max size: 5 MB.",
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["file"],
+                  properties: {
+                    file: { type: "string", format: "binary", description: "Profile photo (JPEG, PNG, WebP, GIF, max 5 MB)" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Profile photo updated",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          photoUrl: { type: "string", format: "uri" },
+                          athleteId: { type: "string" },
+                          updatedFields: { type: "array", items: { type: "string" } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "No file or invalid file type", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Athlete profile not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
       // ── Public News Endpoints ─────────────────────────────────────────────────
       "/news": {
         get: {
@@ -1345,6 +1402,277 @@ const options: swaggerJsdoc.Options = {
               },
             },
             404: { description: "News article not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Admin News Endpoints ───────────────────────────────────────────────
+      "/news/admin": {
+        get: {
+          tags: ["News", "Admin"],
+          summary: "List all news articles (admin)",
+          description: "Admin endpoint that returns all articles including drafts. Requires authentication and news:view permission.",
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "search", in: "query", schema: { type: "string" }, description: "Search across title and description" },
+            { name: "category", in: "query", schema: { type: "string", enum: ["CHAMPIONSHIP", "TRAINING", "ANNOUNCEMENT", "COMMUNITY", "RECOGNITION", "GENERAL"] } },
+            { name: "featured", in: "query", schema: { type: "boolean" } },
+            { name: "page", in: "query", schema: { type: "integer" } },
+            { name: "limit", in: "query", schema: { type: "integer" } },
+            { name: "sort", in: "query", schema: { type: "string", enum: ["date_desc", "date_asc"] } },
+          ],
+          responses: {
+            200: {
+              description: "All news articles",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/NewsArticle" } },
+                      meta: { type: "object", properties: { total: { type: "integer" }, page: { type: "integer" }, limit: { type: "integer" } } },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+        post: {
+          tags: ["News", "Admin"],
+          summary: "Create a news article",
+          description: "Requires authentication and news:create permission.",
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["title", "shortDescription", "content"],
+                  properties: {
+                    title: { type: "string" },
+                    shortDescription: { type: "string" },
+                    content: { type: "string" },
+                    category: { type: "string", enum: ["CHAMPIONSHIP", "TRAINING", "ANNOUNCEMENT", "COMMUNITY", "RECOGNITION", "GENERAL"], default: "GENERAL" },
+                    imageUrl: { type: "string", format: "uri", nullable: true },
+                    insideImages: { type: "array", items: { type: "string", format: "uri" } },
+                    author: { type: "string" },
+                    isFeatured: { type: "boolean", default: false },
+                    publishedAt: { type: "string", format: "date-time", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: "Article created",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: { $ref: "#/components/schemas/NewsArticleDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/news/admin/{id}": {
+        patch: {
+          tags: ["News", "Admin"],
+          summary: "Update a news article",
+          description: "Requires authentication and news:update permission.",
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "News article ID" },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    shortDescription: { type: "string" },
+                    content: { type: "string" },
+                    category: { type: "string", enum: ["CHAMPIONSHIP", "TRAINING", "ANNOUNCEMENT", "COMMUNITY", "RECOGNITION", "GENERAL"] },
+                    imageUrl: { type: "string", format: "uri", nullable: true },
+                    insideImages: { type: "array", items: { type: "string", format: "uri" } },
+                    author: { type: "string" },
+                    isFeatured: { type: "boolean" },
+                    publishedAt: { type: "string", format: "date-time", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Article updated",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: { $ref: "#/components/schemas/NewsArticleDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Article not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+        delete: {
+          tags: ["News", "Admin"],
+          summary: "Delete a news article",
+          description: "Requires authentication and news:delete permission.",
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "News article ID" },
+          ],
+          responses: {
+            200: {
+              description: "Article deleted",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Article not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── News Upload Endpoints ──────────────────────────────────────────────
+      "/news/upload/image": {
+        post: {
+          tags: ["News", "Admin"],
+          summary: "Upload a news article image",
+          description: "Upload a single image file for a news article. Requires authentication and news:create permission. Accepted types: JPEG, PNG, WebP, GIF. Max size: 5 MB.",
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["file"],
+                  properties: {
+                    file: { type: "string", format: "binary", description: "Image file (JPEG, PNG, WebP, GIF, max 5 MB)" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: "Image uploaded successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          url: { type: "string", format: "uri" },
+                          filename: { type: "string" },
+                          originalName: { type: "string" },
+                          size: { type: "integer" },
+                          mimetype: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "No file or invalid file type", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/news/upload/images": {
+        post: {
+          tags: ["News", "Admin"],
+          summary: "Upload multiple news article images",
+          description: "Upload up to 10 images for a news article gallery. Requires authentication and news:create permission.",
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["files"],
+                  properties: {
+                    files: { type: "array", items: { type: "string", format: "binary" }, maxItems: 10, description: "Image files (max 10, each max 5 MB)" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: "Images uploaded successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            url: { type: "string", format: "uri" },
+                            filename: { type: "string" },
+                            originalName: { type: "string" },
+                            size: { type: "integer" },
+                            mimetype: { type: "string" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "No files uploaded", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
@@ -1739,10 +2067,58 @@ const options: swaggerJsdoc.Options = {
       },
       "/clubs/verified": {
         get: {
-          tags: ["Clubs"],
-          summary: "List verified clubs",
+          tags: ["Clubs", "Public"],
+          summary: "List verified clubs (public)",
+          description: "Public directory of verified running clubs. No authentication required.",
+          security: [],
+          parameters: [
+            { name: "search", in: "query", schema: { type: "string" }, description: "Search by club name" },
+            { name: "region", in: "query", schema: { type: "string" }, description: "Filter by region" },
+            { name: "city", in: "query", schema: { type: "string" }, description: "Filter by city" },
+            { name: "limit", in: "query", schema: { type: "integer" }, description: "Max results to return" },
+          ],
           responses: {
-            200: { description: "Verified clubs", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, count: { type: "integer" }, data: { type: "array", items: { $ref: "#/components/schemas/ClubProfile" } } } } } } },
+            200: {
+              description: "Verified clubs",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      count: { type: "integer" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/ClubProfile" } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/clubs/public/{id}": {
+        get: {
+          tags: ["Clubs", "Public"],
+          summary: "Get club detail (public)",
+          description: "Public club profile detail. No authentication required.",
+          security: [],
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, description: "Club ID" }],
+          responses: {
+            200: {
+              description: "Club detail",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/ClubProfile" },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: "Club not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

@@ -62,8 +62,21 @@ export const clubController = {
    * GET /api/v1/clubs/verified
    * --------------------------------------------------------
    */
-  findVerified: asyncHandler(async (_req: Request, res: Response) => {
-    const clubs = await clubService.findVerified();
+  findVerified: asyncHandler(async (req: Request, res: Response) => {
+    const raw = await clubService.findVerifiedCached({
+      search: req.query.search as string | undefined,
+      region: req.query.region as string | undefined,
+      city: req.query.city as string | undefined,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+    });
+
+    // Transform: convert _count to flat fields
+    const clubs = (raw as any[]).map((c) => ({
+      ...c,
+      athleteCount: c._count?.athletes ?? 0,
+      coachCount: c._count?.coaches ?? 0,
+      _count: undefined,
+    }));
 
     res.status(200).json({
       success: true,
@@ -74,12 +87,27 @@ export const clubController = {
 
   /**
    * --------------------------------------------------------
-   * Get Club By ID
+   * Get Club By ID (Admin — with full data)
    * GET /api/v1/clubs/:id
    * --------------------------------------------------------
    */
   findById: asyncHandler(async (req: Request, res: Response) => {
     const club = await clubService.findById(req.params.id as string);
+
+    res.status(200).json({
+      success: true,
+      data: club,
+    });
+  }),
+
+  /**
+   * --------------------------------------------------------
+   * Get Club By ID (Public — cached)
+   * GET /api/v1/clubs/public/:id
+   * --------------------------------------------------------
+   */
+  findPublicById: asyncHandler(async (req: Request, res: Response) => {
+    const club = await clubService.findByIdCached(req.params.id as string);
 
     res.status(200).json({
       success: true,

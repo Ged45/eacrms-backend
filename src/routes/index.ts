@@ -3,6 +3,7 @@ import { Router } from "express";
 import authRoutes from "../modules/auth/auth.routes";
 import verificationRoutes from "../modules/verification/verification.routes";
 import athleteRoutes from "../modules/athletes/athlete.route";
+import athleteUploadRoutes from "../modules/athletes/athlete.upload.routes";
 import healthRoutes from "../modules/health/health.routes";
 import clubRoutes from "../modules/clubs/club.routes";
 import coachRoutes from "../modules/coaches/coach.routes";
@@ -13,6 +14,7 @@ import policyRoutes from "../modules/policies/policy.routes";
 import paymentRoutes, { eventPaymentRoutes } from "../modules/payments/payment.routes";
 import metaRoutes from "../modules/meta/meta.routes";
 import newsRoutes from "../modules/news/news.routes";
+import newsUploadRoutes from "../modules/news/news.upload.routes";
 
 const router = Router();
 
@@ -23,6 +25,7 @@ router.use("/auth", authRoutes);
 router.use("/auth/verify", verificationRoutes);
 
 router.use("/athletes", athleteRoutes);
+router.use("/athletes/profile", athleteUploadRoutes);
 
 router.use("/clubs", clubRoutes);
 
@@ -42,5 +45,6 @@ router.use("/events", eventPaymentRoutes);
 router.use("/", metaRoutes);
 
 router.use("/news", newsRoutes);
+router.use("/news/upload", newsUploadRoutes);
 
 export default router;

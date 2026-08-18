@@ -6,6 +6,7 @@ import { RegisterClubDTO, ApproveClubDTO, RejectClubDTO } from "./club.types";
 
 import { auditService } from "../audit/audit.service";
 import { AuditActions } from "../../constants/audit-actions";
+import { cacheGet, cacheInvalidate } from "../../lib/redis";
 
 interface RequestMetadata {
   ipAddress?: string;
@@ -84,6 +85,35 @@ export const clubService = {
 
   /**
    * --------------------------------------------------
+   * Get Verified Clubs (Public, cached)
+   * --------------------------------------------------
+   */
+  async findVerifiedCached(query?: {
+    search?: string;
+    region?: string;
+    city?: string;
+    limit?: number;
+  }) {
+    const cacheKey = `clubs:public:verified:${JSON.stringify(query || {})}`;
+    return cacheGet(cacheKey, 300, () => clubRepository.findVerified(query));
+  },
+
+  /**
+   * --------------------------------------------------
+   * Get Club By ID (Public, cached)
+   * --------------------------------------------------
+   */
+  async findByIdCached(id: string) {
+    const cacheKey = `clubs:public:detail:${id}`;
+    const club = await cacheGet(cacheKey, 300, () => clubRepository.findById(id));
+    if (!club) {
+      throw new Error("Club not found.");
+    }
+    return club;
+  },
+
+  /**
+   * --------------------------------------------------
    * Get All Clubs
    * --------------------------------------------------
    */
@@ -137,6 +167,9 @@ export const clubService = {
       dto.approvedBy
     );
 
+    await cacheInvalidate(`clubs:public:detail:${id}`);
+    await cacheInvalidate("clubs:public:verified:*");
+
     await auditService.log({
       userId: dto.approvedBy,
       action: AuditActions.CLUB_APPROVED,
@@ -180,6 +213,9 @@ export const clubService = {
       dto.reason
     );
 
+    await cacheInvalidate(`clubs:public:detail:${id}`);
+    await cacheInvalidate("clubs:public:verified:*");
+
     await auditService.log({
       userId: dto.rejectedBy,
       action: AuditActions.CLUB_REJECTED,
@@ -219,6 +255,9 @@ export const clubService = {
     }
 
     const updatedClub = await clubRepository.suspend(id);
+
+    await cacheInvalidate(`clubs:public:detail:${id}`);
+    await cacheInvalidate("clubs:public:verified:*");
 
     await auditService.log({
       userId,

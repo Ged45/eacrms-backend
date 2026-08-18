@@ -117,19 +117,30 @@ export const clubRepository = {
 
   /**
    * ----------------------------------------
-   * Get Verified Clubs
+   * Get Verified Clubs (Public)
    * ----------------------------------------
    */
-  findVerified() {
-    return prisma.club.findMany({
-      where: {
-        verificationStatus:
-          ClubVerificationStatus.VERIFIED,
-      },
+  findVerified(query?: { search?: string; region?: string; city?: string; limit?: number }) {
+    const where: any = { verificationStatus: ClubVerificationStatus.VERIFIED };
 
-      orderBy: {
-        name: "asc",
-      },
+    if (query?.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: "insensitive" } },
+        { shortName: { contains: query.search, mode: "insensitive" } },
+      ];
+    }
+    if (query?.region) {
+      where.region = { contains: query.region, mode: "insensitive" };
+    }
+    if (query?.city) {
+      where.city = { contains: query.city, mode: "insensitive" };
+    }
+
+    return prisma.club.findMany({
+      where,
+      include: { _count: { select: { athletes: true, coaches: true } } },
+      orderBy: { name: "asc" },
+      take: query?.limit,
     });
   },
 

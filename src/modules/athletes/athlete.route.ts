@@ -10,6 +10,8 @@ import { authenticate } from "../../middleware/auth.middleware";
 
 import { authorize } from "../../middleware/authorize.middleware";
 
+import { publicLimiter } from "../../middleware/rateLimit.middleware";
+
 const router = Router();
 
 /*
@@ -21,6 +23,7 @@ const router = Router();
 // Public fan-facing athlete list (no auth required)
 router.get(
     "/public",
+    publicLimiter,
     athleteController.getPublicList
 );
 
@@ -28,6 +31,7 @@ router.get(
 // NOTE: This route must be defined BEFORE /:id to avoid conflicts
 router.get(
     "/public/:id",
+    publicLimiter,
     athleteController.getPublicById
 );
 
