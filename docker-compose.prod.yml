@@ -1,5 +1,6 @@
-services:
+version: '3.9'
 
+services:
   postgres:
     image: postgres:17-alpine
     container_name: eacrms-postgres
@@ -13,34 +14,29 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d eacrms"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-eacrms}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
     container_name: eacrms-app
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "${HOST_PORT:-5000}:5000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/eacrms
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/eacrms}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      # Email verification
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-resend}
       POSTMARK_API_TOKEN: ${POSTMARK_API_TOKEN:-}
       POSTMARK_SENDER: ${POSTMARK_SENDER:-onboarding@postmarkapp.com}
-      # Resend — email verification
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
-      # Africa's Talking — SMS/phone OTP
       AT_USERNAME: ${AT_USERNAME:-sandbox}
       AT_API_KEY: ${AT_API_KEY:-}
       AT_SENDER_ID: ${AT_SENDER_ID:-EACRMS}

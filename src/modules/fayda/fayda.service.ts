@@ -362,4 +362,13 @@ export const faydaService = {
     if (!v) throw new NotFoundError("No verification record found for this coach.");
     return v;
   },
+
+  /**
+   * Get verification record by id (public)
+   */
+  async getVerificationById(verificationId: string) {
+    const v = await faydaRepository.findById(verificationId);
+    if (!v) throw new NotFoundError("Verification record not found.");
+    return v;
+  },
 };

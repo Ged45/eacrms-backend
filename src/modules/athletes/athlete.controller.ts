@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 
 import { athleteService } from "./athlete.service";
+import { faydaService } from "../fayda/fayda.service";
 import { asyncHandler } from "../../middleware/asyncHandler";
 import { AthleteStatus } from "@prisma/client";
 import { CreateAthleteDTO } from "./dto/create-athlete.dto";
@@ -152,6 +153,25 @@ export class AthleteController {
     return res.status(200).json({
       success: true,
       message: result.message,
+    });
+  });
+
+  /**
+   * Get Fayda demographic info for the logged-in athlete
+   * GET /api/v1/athletes/profile/fayda
+   */
+  getFaydaForProfile = asyncHandler(async (req: Request, res: Response) => {
+    const athlete = await athleteService.getByUserId(req.user.userId);
+
+    const verification = await faydaService.getStatusForAthlete(athlete.id);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        verificationId: verification.id,
+        status: verification.status,
+        demographicData: verification.verifiedData ?? null,
+      },
     });
   });
 }

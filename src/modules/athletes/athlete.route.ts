@@ -45,6 +45,12 @@ router.get(
     athleteController.getProfile
 );
 
+router.get(
+    "/profile/fayda",
+    authenticate,
+    athleteController.getFaydaForProfile
+);
+
 /*
 |--------------------------------------------------------------------------
 | Administrator Routes

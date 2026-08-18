@@ -20,6 +20,12 @@ router.post(
   faydaController.confirmStatelessOtp
 );
 
+// Public: fetch verification details (status, demographicData) by id
+router.get(
+  "/fayda/verify/:verificationId",
+  faydaController.getVerification
+);
+
 // Athlete fayda routes (nested under /athletes/:athleteId/fayda)
 router.post(
   "/athletes/:athleteId/fayda/initiate",
