@@ -32,6 +32,42 @@ export const eventService = {
   findAll() { return eventRepository.findAll(); },
   findPublished() { return eventRepository.findPublished(); },
 
+  /**
+   * Mobile-optimized event detail.
+   * Includes enrollment counts and a derived lifecycleStatus
+   * that the frontend can use directly.
+   */
+  async getDetail(id: string) {
+    const event = await eventRepository.findDetailById(id);
+    if (!event) throw new NotFoundError("Event not found.");
+
+    const now = new Date();
+    const schedule = (event.schedule as any[]) ?? [];
+
+    // Derive lifecycle status from schedule dates
+    let lifecycleStatus: string;
+    if (event.status === "CANCELLED") {
+      lifecycleStatus = "CANCELLED";
+    } else if (event.status !== "PUBLISHED") {
+      lifecycleStatus = "UPCOMING";
+    } else if (schedule.length === 0) {
+      lifecycleStatus = "UPCOMING";
+    } else {
+      const firstStart = new Date(schedule[0]?.startsAt ?? 0);
+      const lastEnd = new Date(schedule[schedule.length - 1]?.endsAt ?? 0);
+
+      if (now < firstStart) {
+        lifecycleStatus = "REGISTRATION_OPEN";
+      } else if (now >= firstStart && now <= lastEnd) {
+        lifecycleStatus = "LIVE";
+      } else {
+        lifecycleStatus = "COMPLETED";
+      }
+    }
+
+    return { ...event, lifecycleStatus };
+  },
+
   async findById(id: string) {
     const event = await eventRepository.findById(id);
     if (!event) throw new NotFoundError("Event not found.");

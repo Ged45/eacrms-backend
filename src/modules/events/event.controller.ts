@@ -19,6 +19,9 @@ export const eventController = {
   findById: asyncHandler(async (req: Request, res: Response) => {
     res.json({ success: true, data: await eventService.findById(req.params.id as string) });
   }),
+  detail: asyncHandler(async (req: Request, res: Response) => {
+    res.json({ success: true, data: await eventService.getDetail(req.params.id as string) });
+  }),
   submit: asyncHandler(async (req: Request, res: Response) => {
     const event = await eventService.submit(req.params.id as string, req.user.userId, metadata(req));
     res.json({ success: true, message: "Event submitted for federation approval.", data: event });

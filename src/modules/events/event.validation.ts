@@ -17,6 +17,9 @@ export const createEventSchema = z.object({
   organizerName: z.string().min(2).max(160),
   organizerEmail: z.string().email().optional(),
   organizerPhone: z.string().min(5).max(30).optional(),
+  disciplines: z.array(z.string().min(1).max(100)).optional(),
+  bannerUrl: z.string().url().max(2000).optional(),
+  registrationDeadline: z.string().datetime().optional(),
 });
 
 export const statusReasonSchema = z.object({

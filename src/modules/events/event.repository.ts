@@ -10,6 +10,25 @@ const eventDetails = {
   },
 };
 
+/**
+ * Augment an event with computed enrollment counts.
+ */
+async function withEnrollmentCounts<T extends { id: string }>(event: T) {
+  const [enrolledClubsCount, totalAthletesEnrolled] = await Promise.all([
+    prisma.eventAttendee.count({
+      where: { eventId: event.id, attendeeType: "CLUB" },
+    }),
+    prisma.eventRegistration.count({
+      where: { eventId: event.id },
+    }),
+  ]);
+  return { ...event, enrolledClubsCount, totalAthletesEnrolled };
+}
+
+async function withEnrollmentCountsMany<T extends { id: string }>(events: T[]) {
+  return Promise.all(events.map(withEnrollmentCounts));
+}
+
 export const eventRepository = {
   create(data: Prisma.EventCreateInput) {
     return prisma.event.create({ data, include: eventDetails });
@@ -19,16 +38,24 @@ export const eventRepository = {
     return prisma.event.findUnique({ where: { id }, include: eventDetails });
   },
 
-  findAll() {
-    return prisma.event.findMany({ orderBy: { createdAt: "desc" }, include: eventDetails });
+  async findDetailById(id: string) {
+    const event = await prisma.event.findUnique({ where: { id }, include: eventDetails });
+    if (!event) return null;
+    return withEnrollmentCounts(event);
   },
 
-  findPublished() {
-    return prisma.event.findMany({
+  async findAll() {
+    const events = await prisma.event.findMany({ orderBy: { createdAt: "desc" }, include: eventDetails });
+    return withEnrollmentCountsMany(events);
+  },
+
+  async findPublished() {
+    const events = await prisma.event.findMany({
       where: { status: EventStatus.PUBLISHED },
       orderBy: { publishedAt: "desc" },
       include: eventDetails,
     });
+    return withEnrollmentCountsMany(events);
   },
 
   transition(

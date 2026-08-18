@@ -120,12 +120,15 @@ const options: swaggerJsdoc.Options = {
             organizerName: { type: "string", example: "Ethiopian Athletics Federation" },
             organizerEmail: { type: "string", format: "email", example: "events@example.com" },
             organizerPhone: { type: "string", example: "+251911000000" },
+            disciplines: { type: "array", items: { type: "string" }, example: ["100m Sprint", "5,000m", "10,000m"], description: "List of race/discipline names for this event" },
+            bannerUrl: { type: "string", format: "uri", example: "https://example.com/banner.jpg", description: "Event banner or cover image URL" },
+            registrationDeadline: { type: "string", format: "date-time", example: "2026-09-30T23:59:59.000Z", description: "Last date/time to register for this event" },
           },
         },
         Event: {
           allOf: [
             { $ref: "#/components/schemas/EventRequest" },
-            { type: "object", properties: { id: { type: "string" }, status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, createdById: { type: "string" }, approvedById: { type: "string", nullable: true }, approvedAt: { type: "string", format: "date-time", nullable: true }, publishedAt: { type: "string", format: "date-time", nullable: true }, rejectionReason: { type: "string", nullable: true }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
+            { type: "object", properties: { id: { type: "string" }, status: { type: "string", enum: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "REJECTED", "CANCELLED"] }, createdById: { type: "string" }, approvedById: { type: "string", nullable: true }, approvedAt: { type: "string", format: "date-time", nullable: true }, publishedAt: { type: "string", format: "date-time", nullable: true }, rejectionReason: { type: "string", nullable: true }, enrolledClubsCount: { type: "number", description: "Computed count of registered clubs" }, totalAthletesEnrolled: { type: "number", description: "Computed count of registered athletes" }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
           ],
         },
 
@@ -1448,9 +1451,47 @@ const options: swaggerJsdoc.Options = {
         get: {
           tags: ["Events"],
           summary: "List published events",
-          description: "Public.",
+          description: "Public endpoint for the home page competition section. Returns published events with disciplines, banner image, enrollment counts, and registration deadline.",
           security: [],
           responses: { 200: { description: "Published events", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Event" } } } } } } } },
+        },
+      },
+      "/events/{id}/detail": {
+        get: {
+          tags: ["Events"],
+          summary: "Event detail (mobile-optimized)",
+          description: "Public endpoint returning full event info with enrollment stats, schedule breakdown, and a derived lifecycleStatus (REGISTRATION_OPEN | UPCOMING | LIVE | COMPLETED | CANCELLED).",
+          security: [],
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
+          responses: {
+            200: {
+              description: "Event detail",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        allOf: [
+                          { $ref: "#/components/schemas/Event" },
+                          {
+                            type: "object",
+                            properties: {
+                              lifecycleStatus: { type: "string", enum: ["REGISTRATION_OPEN", "UPCOMING", "LIVE", "COMPLETED", "CANCELLED"], example: "REGISTRATION_OPEN", description: "Frontend-ready status derived from schedule dates" },
+                              enrolledClubsCount: { type: "number", example: 12 },
+                              totalAthletesEnrolled: { type: "number", example: 85 },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: "Event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
         },
       },
       "/events/{id}/submit": {

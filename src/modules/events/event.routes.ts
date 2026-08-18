@@ -12,6 +12,7 @@ import { generateQrTokenSchema, scanQrTokenSchema } from "./event-checkin.valida
 const router = Router();
 
 router.get("/published", eventController.findPublished);
+router.get("/:id/detail", eventController.detail);
 router.get("/", authenticate, authorize("event:view"), eventController.findAll);
 router.post("/", authenticate, authorize("event:create"), validate(createEventSchema), eventController.create);
 router.post("/:eventId/qr-tokens", authenticate, authorize("event:checkin"), validate(generateQrTokenSchema), eventCheckInController.generateToken);
