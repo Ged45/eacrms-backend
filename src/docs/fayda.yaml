@@ -80,3 +80,54 @@
           application/json:
             schema:
               $ref: '#/components/schemas/Error'
+
+/fayda/verify/{verificationId}:
+  get:
+    tags: [Fayda Verification]
+    summary: Get verification by id (secure)
+    description: |
+      Returns the verification record including demographic data if the verification is CONFIRMED.
+      Requires the short-lived verification token returned on OTP confirmation either as query `?token=` or header `x-fayda-token`.
+    security: []
+    parameters:
+      - in: path
+        name: verificationId
+        required: true
+        schema:
+          type: string
+        example: clxyz123
+      - in: query
+        name: token
+        schema:
+          type: string
+        description: Fayda verification token returned on OTP confirmation
+      - in: header
+        name: x-fayda-token
+        schema:
+          type: string
+        description: Alternative location for the verification token
+    responses:
+      '200':
+        description: Verification record
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaydaVerificationRecord'
+      '400':
+        description: Missing token or verification not confirmed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '401':
+        description: Invalid or expired token
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '404':
+        description: Verification record not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'

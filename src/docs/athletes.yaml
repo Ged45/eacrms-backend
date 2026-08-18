@@ -330,3 +330,38 @@
           application/json:
             schema:
               $ref: '#/components/schemas/Error'
+
+/athletes/profile/fayda:
+  get:
+    tags: [Athletes, Fayda Verification]
+    summary: Get Fayda verification data for the logged-in athlete
+    description: Returns the latest Fayda verification record (id, status, demographic data) for the authenticated athlete.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Fayda verification data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    verificationId: { type: string }
+                    status: { type: string }
+                    demographicData: { type: object, nullable: true }
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      '404':
+        description: No verification record found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'

@@ -453,6 +453,25 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+      "/fayda/verify/{verificationId}": {
+        get: {
+          tags: ["Fayda Verification"],
+          summary: "Get verification result (secure)",
+          description: "Publicly accessible endpoint to fetch a verification record by id. Requires the short-lived verification token either as query `?token=` or header `x-fayda-token`.",
+          security: [],
+          parameters: [
+            { in: "path", name: "verificationId", required: true, schema: { type: "string" }, description: "The verificationId returned from the initiate endpoint" },
+            { in: "query", name: "token", required: false, schema: { type: "string" }, description: "Fayda verification token returned on OTP confirmation" },
+            { in: "header", name: "x-fayda-token", required: false, schema: { type: "string" }, description: "Fayda verification token (alternative to query)" },
+          ],
+          responses: {
+            200: { description: "Verification record", content: { "application/json": { schema: { $ref: "#/components/schemas/FaydaVerificationRecord" } } } },
+            400: { description: "Missing or invalid token / verification not confirmed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Invalid or expired token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Verification record not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
       "/auth/me": {
         get: {
           tags: ["Auth"],
@@ -713,6 +732,19 @@ const options: swaggerJsdoc.Options = {
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
+      },
+      "/athletes/profile/fayda": {
+        get: {
+          tags: ["Athletes", "Fayda Verification"],
+          summary: "Get Fayda verification data for the logged-in athlete",
+          description: "Returns the latest Fayda verification record (id, status, demographic data) for the authenticated athlete.",
+          responses: {
+            200: { description: "Fayda verification data", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { verificationId: { type: "string" }, status: { type: "string" }, demographicData: { type: "object", nullable: true } } } } } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "No verification record found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
       },
       // ── Payments ───────────────────────────────────────────────────────────
       "/payments/mock/webhook": {
