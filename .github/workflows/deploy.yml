@@ -11,7 +11,6 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/${{ toLower(github.repository_owner) }}/eacrms-backend
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -19,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set lowercase image name
+        run: echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/eacrms-backend" >> "$GITHUB_ENV"
       - name: Checkout code
         uses: actions/checkout@v4
 
