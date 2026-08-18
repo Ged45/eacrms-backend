@@ -10,22 +10,19 @@ export const authRepository = {
 
   findUserByEmail(email: string) {
     return prisma.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
       include: {
         roles: {
           include: {
             role: {
               include: {
-                permissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
+                permissions: { include: { permission: true } },
               },
             },
           },
+        },
+        athlete: {
+          include: { club: true },
         },
       },
     });
@@ -39,12 +36,13 @@ export const authRepository = {
           include: {
             role: {
               include: {
-                permissions: {
-                  include: { permission: true },
-                },
+                permissions: { include: { permission: true } },
               },
             },
           },
+        },
+        athlete: {
+          include: { club: true },
         },
       },
     });

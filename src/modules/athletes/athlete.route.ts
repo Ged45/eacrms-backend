@@ -4,7 +4,7 @@ import { athleteController } from "./athlete.controller";
 
 import { validate } from "../../middleware/validate.middleware";
 
-import { createAthleteSchema } from "./athlete.validation";
+import { createAthleteSchema, createAthleteByAdminSchema } from "./athlete.validation";
 
 import { authenticate } from "../../middleware/auth.middleware";
 
@@ -23,7 +23,7 @@ router.post(
     "/register/by-admin",
     authenticate,
     authorize("athlete:create"),
-    validate(createAthleteSchema),
+    validate(createAthleteByAdminSchema),
     athleteController.registerByClubAdmin
 );
 

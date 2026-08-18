@@ -12,142 +12,155 @@ import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { BadRequestError } from "../../errors/BadRequestError";
 
+import {
+  verifyFaydaVerificationToken,
+  FaydaVerificationTokenPayload,
+} from "../../utils/auth-contract";
 
+const SALT_ROUNDS = 12;
 
 export class AthleteService {
   /**
-   * Register a new athlete
+   * Register a new athlete.
+   *
+   * Self-registration (mobile/web flow):
+   *   - `faydaVerificationToken` is required.
+   *   - firstName, lastName, dateOfBirth, gender are extracted from the token.
+   *   - Response matches the mobile contract: { success, message, data: { id, status, createdAt } }.
+   *
+   * Club-admin registration:
+   *   - Personal data is supplied directly in the request body.
+   *   - faydaVerificationToken is optional.
    */
   async register(
     data: CreateAthleteDTO,
     request: Request,
     options?: { registeredById?: string }
   ) {
-    if (!data.email || !data.password || !data.firstName || !data.lastName || !data.dateOfBirth || !data.gender || !data.nationality) {
+    const registeredById = options?.registeredById;
+    const isSelfRegistration = !registeredById;
+
+    // ── Self-registration: validate Fayda token ──────────────────────────
+    let demographics: FaydaVerificationTokenPayload | null = null;
+
+    if (isSelfRegistration) {
+      if (!data.faydaVerificationToken) {
+        throw new BadRequestError("Fayda verification token is required for self-registration.");
+      }
+
+      try {
+        demographics = verifyFaydaVerificationToken(data.faydaVerificationToken);
+      } catch {
+        throw new BadRequestError("Invalid or expired Fayda verification token.");
+      }
+    }
+
+    // ── Merge demographics from token (self-reg) or body (admin-reg) ─────
+    const firstName = demographics?.firstName ?? data.firstName;
+    const lastName = demographics?.lastName ?? data.lastName;
+    const dateOfBirth = demographics?.dateOfBirth
+      ? new Date(demographics.dateOfBirth)
+      : data.dateOfBirth;
+    const gender = demographics?.gender ?? data.gender;
+    const fanNumber = demographics?.fanNumber ?? data.fanNumber;
+
+    // nationality is not in the Fayda token; accept from body or default
+    const nationality = data.nationality ?? "Ethiopian";
+
+    if (!data.email || !data.password || !firstName || !lastName || !dateOfBirth || !gender) {
       throw new BadRequestError("Missing required athlete registration fields.");
     }
 
-    /**
-     * Check duplicate email
-     */
-    const existingUser =
-      await athleteRepository.emailExists(
-        data.email
-      );
-
+    // ── Check duplicate email ─────────────────────────────────────────────
+    const existingUser = await athleteRepository.emailExists(data.email);
     if (existingUser) {
-      throw new ConflictError(
-        "Email already exists."
-      );
+      throw new ConflictError("Email already exists.");
     }
 
-    /**
-     * Validate sport
-     */
-    if (data.sportId) {
-      const sport =
-        await athleteRepository.sportExists(
-          data.sportId
-        );
+    // ── Validate sportIds (each must exist) ──────────────────────────────
+    const sportIds = data.sportIds ?? (data.sportId ? [data.sportId] : []);
 
+    for (const sid of sportIds) {
+      const sport = await athleteRepository.sportExists(sid);
       if (!sport) {
-        throw new NotFoundError(
-          "Sport not found."
-        );
+        throw new NotFoundError(`Sport not found: ${sid}`);
       }
     }
 
-    /**
-     * Validate club
-     */
+    // ── Validate club ─────────────────────────────────────────────────────
     if (data.clubId) {
-      const club =
-        await athleteRepository.clubExists(
-          data.clubId
-        );
-
+      const club = await athleteRepository.clubExists(data.clubId);
       if (!club) {
-        throw new NotFoundError(
-          "Club not found."
-        );
+        throw new NotFoundError("Club not found.");
       }
     }
 
-    /**
-     * Hash password
-     */
-    const hashedPassword =
-      await bcrypt.hash(
-        data.password,
-        12
-      );
+    // ── Hash password ─────────────────────────────────────────────────────
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
-    /**
-     * Save athlete
-     */
-    const registeredById = options?.registeredById;
+    // ── Build registration payload ────────────────────────────────────────
     const registrationSource: RegistrationSource = registeredById
       ? RegistrationSource.CLUB_ADMIN
       : RegistrationSource.SELF;
 
     const athletePayload: AthleteRegistrationInput = {
-      ...data,
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName,
+      lastName,
       email: data.email,
       password: hashedPassword,
-      phoneNumber: data.phoneNumber,
-      dateOfBirth: data.dateOfBirth,
-      gender: data.gender,
-      nationality: data.nationality,
+      phoneNumber: data.phoneNumber ?? demographics?.phoneNumber,
+      dateOfBirth,
+      gender,
+      nationality,
+      sportIds,
+      sportId: sportIds[0],
+      clubId: data.clubId,
+      clubName: data.clubName,
+      region: data.region,
+      emergencyContactPhone: data.emergencyContactPhone,
+      height: data.height,
+      weight: data.weight,
+      position: data.position,
+      dominantHand: data.dominantHand,
+      dominantFoot: data.dominantFoot,
+      bloodType: data.bloodType,
+      faydaVerificationToken: data.faydaVerificationToken,
+      fanNumber,
       registrationSource,
       registeredById,
     };
 
-    const athlete =
-      await athleteRepository.register(athletePayload);
+    const athlete = await athleteRepository.register(athletePayload);
+    if (!athlete) {
+      throw new BadRequestError("Failed to create athlete record.");
+    }
 
-    /**
-     * Create audit log
-     */
+    // ── Audit log ─────────────────────────────────────────────────────────
     await auditService.log({
       userId: athlete.user.id,
-
       action: AuditActions.REGISTER,
-
       entity: "Athlete",
-
       entityId: athlete.id,
-
       ipAddress: request.ip,
-
-      userAgent:
-        request.get("user-agent") ?? "",
-
+      userAgent: request.get("user-agent") ?? "",
       details: {
         email: athlete.user.email,
-        sportId: athlete.sportId,
+        sportIds,
         clubId: athlete.clubId,
+        registrationSource,
       },
     });
 
-    // Fayda verification is initiated separately via POST /athletes/:athleteId/fayda/initiate
-
-    /**
-     * Never return password
-     */
-    const {
-      password,
-      ...user
-    } = athlete.user;
-
+    // ── Mobile contract response ──────────────────────────────────────────
     return {
       message:
-        "Athlete registered successfully.",
-
+        isSelfRegistration
+          ? "Your registration is under review. You will receive an email once approved."
+          : "Athlete registered successfully.",
       athlete: {
-        ...athlete,
-        user,
+        id: athlete.id,
+        status: athlete.status,
+        createdAt: athlete.createdAt,
       },
     };
   }
@@ -156,69 +169,36 @@ export class AthleteService {
    * Get athlete by athlete ID
    */
   async getById(id: string) {
-    const athlete =
-      await athleteRepository.findById(id);
-
+    const athlete = await athleteRepository.findById(id);
     if (!athlete) {
-      throw new NotFoundError(
-        "Athlete not found."
-      );
+      throw new NotFoundError("Athlete not found.");
     }
 
-    const {
-      password,
-      ...user
-    } = athlete.user;
-
-    return {
-      ...athlete,
-      user,
-    };
+    const { password, ...user } = athlete.user;
+    return { ...athlete, user };
   }
 
   /**
    * Get athlete by authenticated user
    */
   async getByUserId(userId: string) {
-    const athlete =
-      await athleteRepository.findByUserId(
-        userId
-      );
-
+    const athlete = await athleteRepository.findByUserId(userId);
     if (!athlete) {
-      throw new NotFoundError(
-        "Athlete profile not found."
-      );
+      throw new NotFoundError("Athlete profile not found.");
     }
 
-    const {
-      password,
-      ...user
-    } = athlete.user;
-
-    return {
-      ...athlete,
-      user,
-    };
+    const { password, ...user } = athlete.user;
+    return { ...athlete, user };
   }
 
   /**
    * List all athletes
    */
   async findAll() {
-    const athletes =
-      await athleteRepository.findAll();
-
+    const athletes = await athleteRepository.findAll();
     return athletes.map((athlete) => {
-      const {
-        password,
-        ...user
-      } = athlete.user;
-
-      return {
-        ...athlete,
-        user,
-      };
+      const { password, ...user } = athlete.user;
+      return { ...athlete, user };
     });
   }
 
@@ -226,19 +206,10 @@ export class AthleteService {
    * Search athletes
    */
   async search(search: string) {
-    const athletes =
-      await athleteRepository.search(search);
-
+    const athletes = await athleteRepository.search(search);
     return athletes.map((athlete) => {
-      const {
-        password,
-        ...user
-      } = athlete.user;
-
-      return {
-        ...athlete,
-        user,
-      };
+      const { password, ...user } = athlete.user;
+      return { ...athlete, user };
     });
   }
 
@@ -246,21 +217,10 @@ export class AthleteService {
    * Get athletes by status
    */
   async findByStatus(status: AthleteStatus) {
-    const athletes =
-      await athleteRepository.findByStatus(
-        status
-      );
-
+    const athletes = await athleteRepository.findByStatus(status);
     return athletes.map((athlete) => {
-      const {
-        password,
-        ...user
-      } = athlete.user;
-
-      return {
-        ...athlete,
-        user,
-      };
+      const { password, ...user } = athlete.user;
+      return { ...athlete, user };
     });
   }
 
@@ -373,33 +333,22 @@ export class AthleteService {
    * Delete athlete
    */
   async delete(id: string) {
-    const athlete =
-      await athleteRepository.findById(id);
-
+    const athlete = await athleteRepository.findById(id);
     if (!athlete) {
-      throw new NotFoundError(
-        "Athlete not found."
-      );
+      throw new NotFoundError("Athlete not found.");
     }
 
     await athleteRepository.delete(id);
 
     await auditService.log({
       userId: athlete.user.id,
-
       action: AuditActions.DELETE_ATHLETE,
-
       entity: "Athlete",
-
       entityId: athlete.id,
     });
 
-    return {
-      message:
-        "Athlete deleted successfully.",
-    };
+    return { message: "Athlete deleted successfully." };
   }
 }
 
-export const athleteService =
-  new AthleteService();
+export const athleteService = new AthleteService();

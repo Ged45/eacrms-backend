@@ -188,8 +188,22 @@ model Sport {
   description String?
   athletes    Athlete[]
   coaches     Coach[]
+  athleteSports AthleteSport[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model AthleteSport {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  sportId   String
+  sport     Sport    @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([athleteId, sportId])
+  @@index([athleteId])
+  @@index([sportId])
 }
 
 model Club {
@@ -228,12 +242,16 @@ model Athlete {
   sportId String?
   sport   Sport?  @relation(fields: [sportId], references: [id])
 
-  clubId String?
-  club   Club?   @relation(fields: [clubId], references: [id])
+  clubId   String?
+  clubName String?
+  club     Club?   @relation(fields: [clubId], references: [id])
 
   dateOfBirth DateTime
   gender      Gender
   nationality String
+
+  region              String?
+  emergencyContactPhone String?
 
   height Int?
   weight Int?
@@ -261,6 +279,7 @@ model Athlete {
   eventAttendees     EventAttendee[]
   eventRegistrations EventRegistration[]
   payments           Payment[]
+  athleteSports      AthleteSport[]
 }
 
 model Coach {

@@ -9,6 +9,7 @@ export class AthleteRepository {
    * 1. User
    * 2. UserRole (ATHLETE)
    * 3. Athlete Profile
+   * 4. AthleteSport records (if sportIds provided)
    *
    * All operations execute inside a single transaction.
    */
@@ -44,33 +45,69 @@ export class AthleteRepository {
         },
       });
 
+      // Determine which sportId to use for the legacy single field.
+      // If only sportIds is provided (array), use the first one for the legacy field.
+      const primarySportId = data.sportId ?? data.sportIds?.[0] ?? null;
+
       // Create Athlete Profile
       const athlete = await tx.athlete.create({
         data: {
-          userId:            user.id,
-          dateOfBirth:       data.dateOfBirth,
-          gender:            data.gender,
-          nationality:       data.nationality,
-          sportId:           data.sportId,
-          clubId:            data.clubId,
-          position:          data.position,
-          height:            data.height,
-          weight:            data.weight,
-          dominantHand:      data.dominantHand,
-          dominantFoot:      data.dominantFoot,
-          bloodType:         data.bloodType,
-          registrationSource: data.registrationSource ?? "SELF",
-          registeredById:    data.registeredById,
-          status:            data.registeredById ? "PENDING" : "DRAFT",
+          userId:              user.id,
+          dateOfBirth:         data.dateOfBirth,
+          gender:              data.gender,
+          nationality:         data.nationality,
+          sportId:             primarySportId,
+          clubId:              data.clubId,
+          clubName:            data.clubName,
+          region:              data.region,
+          emergencyContactPhone: data.emergencyContactPhone,
+          position:            data.position,
+          height:              data.height,
+          weight:              data.weight,
+          dominantHand:        data.dominantHand,
+          dominantFoot:        data.dominantFoot,
+          bloodType:           data.bloodType,
+          registrationSource:  data.registrationSource ?? "SELF",
+          registeredById:      data.registeredById,
+          status:              data.registeredById ? "PENDING" : "DRAFT",
         },
         include: {
           user: true,
           sport: true,
           club: true,
+          athleteSports: { include: { sport: true } },
         },
       });
 
-      return athlete;
+      // Create AthleteSport join records for sportIds array
+      if (data.sportIds && data.sportIds.length > 0) {
+        await tx.athleteSport.createMany({
+          data: data.sportIds.map((sportId) => ({
+            athleteId: athlete.id,
+            sportId,
+          })),
+          skipDuplicates: true,
+        });
+      } else if (primarySportId) {
+        // Backfill: if only sportId was provided, create a join record
+        await tx.athleteSport.create({
+          data: {
+            athleteId: athlete.id,
+            sportId: primarySportId,
+          },
+        });
+      }
+
+      // Re-fetch with sport relations included
+      return tx.athlete.findUnique({
+        where: { id: athlete.id },
+        include: {
+          user: true,
+          sport: true,
+          club: true,
+          athleteSports: { include: { sport: true } },
+        },
+      });
     });
   }
 
@@ -79,13 +116,12 @@ export class AthleteRepository {
    */
   async findById(id: string) {
     return prisma.athlete.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
       include: {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
     });
   }
@@ -95,13 +131,12 @@ export class AthleteRepository {
    */
   async findByUserId(userId: string) {
     return prisma.athlete.findUnique({
-      where: {
-        userId,
-      },
+      where: { userId },
       include: {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
     });
   }
@@ -111,15 +146,12 @@ export class AthleteRepository {
    */
   async findByEmail(email: string) {
     return prisma.athlete.findFirst({
-      where: {
-        user: {
-          email,
-        },
-      },
+      where: { user: { email } },
       include: {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
     });
   }
@@ -127,19 +159,15 @@ export class AthleteRepository {
   /**
    * Update Athlete Profile
    */
-  async update(
-    id: string,
-    data: Prisma.AthleteUpdateInput
-  ) {
+  async update(id: string, data: Prisma.AthleteUpdateInput) {
     return prisma.athlete.update({
-      where: {
-        id,
-      },
+      where: { id },
       data,
       include: {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
     });
   }
@@ -148,11 +176,7 @@ export class AthleteRepository {
    * Delete Athlete Profile
    */
   async delete(id: string) {
-    return prisma.athlete.delete({
-      where: {
-        id,
-      },
-    });
+    return prisma.athlete.delete({ where: { id } });
   }
 
   /**
@@ -164,10 +188,9 @@ export class AthleteRepository {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -176,17 +199,14 @@ export class AthleteRepository {
    */
   async findByStatus(status: AthleteStatus) {
     return prisma.athlete.findMany({
-      where: {
-        status,
-      },
+      where: { status },
       include: {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -197,40 +217,18 @@ export class AthleteRepository {
     return prisma.athlete.findMany({
       where: {
         OR: [
-          {
-            user: {
-              firstName: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-          },
-          {
-            user: {
-              lastName: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-          },
-          {
-            user: {
-              email: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-          },
+          { user: { firstName: { contains: search, mode: "insensitive" } } },
+          { user: { lastName: { contains: search, mode: "insensitive" } } },
+          { user: { email: { contains: search, mode: "insensitive" } } },
         ],
       },
       include: {
         user: true,
         sport: true,
         club: true,
+        athleteSports: { include: { sport: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -239,12 +237,8 @@ export class AthleteRepository {
    */
   async clubExists(clubId: string) {
     return prisma.club.findUnique({
-      where: {
-        id: clubId,
-      },
-      select: {
-        id: true,
-      },
+      where: { id: clubId },
+      select: { id: true },
     });
   }
 
@@ -253,12 +247,8 @@ export class AthleteRepository {
    */
   async sportExists(sportId: string) {
     return prisma.sport.findUnique({
-      where: {
-        id: sportId,
-      },
-      select: {
-        id: true,
-      },
+      where: { id: sportId },
+      select: { id: true },
     });
   }
 
@@ -289,13 +279,46 @@ export class AthleteRepository {
    */
   async emailExists(email: string) {
     return prisma.user.findUnique({
-      where: {
-        email,
-      },
-      select: {
-        id: true,
-      },
+      where: { email },
+      select: { id: true },
     });
+  }
+
+  /**
+   * Get all sports (for registration dropdown)
+   */
+  async findAllSports() {
+    return prisma.sport.findMany({
+      select: { id: true, name: true, description: true },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  /**
+   * Get all clubs (for registration dropdown)
+   */
+  async findAllClubs() {
+    return prisma.club.findMany({
+      select: { id: true, name: true, region: true, city: true },
+      where: { verificationStatus: "VERIFIED" },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  /**
+   * Get distinct regions from clubs
+   */
+  async findDistinctRegions() {
+    const clubs = await prisma.club.findMany({
+      select: { region: true },
+      where: {
+        region: { not: null },
+        verificationStatus: "VERIFIED",
+      },
+      distinct: ["region"],
+      orderBy: { region: "asc" },
+    });
+    return clubs.map((c) => c.region).filter(Boolean) as string[];
   }
 }
 

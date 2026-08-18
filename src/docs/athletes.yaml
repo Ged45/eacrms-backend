@@ -2,7 +2,11 @@
   post:
     tags: [Athletes]
     summary: Self-register as an athlete
-    description: Public endpoint. Creates a user + athlete profile. Status starts as DRAFT.
+    description: >
+      Public endpoint. Requires a Fayda verification token from POST /fayda/verify/confirm.
+      firstName, lastName, dateOfBirth, gender are extracted server-side from the token.
+      Status starts as DRAFT. Returns a lightweight confirmation — the user must wait
+      for federation approval before logging in.
     security: []
     requestBody:
       required: true
@@ -12,18 +16,22 @@
             $ref: '#/components/schemas/AthleteRequest'
     responses:
       '201':
-        description: Athlete registered successfully
+        description: Registration submitted for review
         content:
           application/json:
             schema:
               type: object
               properties:
                 success: { type: boolean, example: true }
-                message: { type: string, example: Athlete registered successfully. }
+                message: { type: string, example: 'Your registration is under review. You will receive an email once approved.' }
                 data:
-                  $ref: '#/components/schemas/AthleteProfile'
+                  type: object
+                  properties:
+                    id: { type: string, example: clxyz123 }
+                    status: { type: string, enum: [DRAFT, PENDING], example: DRAFT }
+                    createdAt: { type: string, format: date-time }
       '400':
-        description: Validation failed
+        description: Validation failed or invalid Fayda token
         content:
           application/json:
             schema:

@@ -138,6 +138,12 @@ export const authService = {
 
     const roles = user.roles.map((r) => r.role.name);
 
+    // Extract athlete / club metadata for the mobile login response
+    const athlete = (user as any).athlete;
+    const fanNumber = athlete?.faydaNin ?? undefined;
+    const clubId = athlete?.clubId ?? undefined;
+    const clubName = athlete?.club?.name ?? undefined;
+
     return buildLoginResponse({
       userId: user.id,
       email: user.email ?? "",
@@ -147,6 +153,9 @@ export const authService = {
       roles,
       accessToken,
       refreshToken,
+      fanNumber,
+      clubId,
+      clubName,
     });
   },
 

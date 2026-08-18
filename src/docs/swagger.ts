@@ -149,33 +149,44 @@ const options: swaggerJsdoc.Options = {
           ],
         },
 
-        // Athlete
+        // Athlete — Self-registration (mobile/web)
         AthleteRequest: {
           type: "object",
-          required: ["email", "password"],
+          description: "Self-registration payload. faydaVerificationToken is required; firstName, lastName, dateOfBirth, gender are extracted server-side from the token.",
+          required: ["email", "password", "faydaVerificationToken"],
           properties: {
-            firstName:              { type: "string", example: "Abebe" },
-            lastName:               { type: "string", example: "Bikila" },
             email:                  { type: "string", format: "email", example: "abebe@example.com" },
             password:               { type: "string", minLength: 8, example: "Password123" },
-            phoneNumber:            { type: "string", example: "0911000002" },
-            faydaVerificationToken: { type: "string", nullable: true, example: "eyJhbGciOi..." },
-            fanNumber:              { type: "string", nullable: true, example: "ET-19950810-001" },
-            dateOfBirth:            { type: "string", format: "date", example: "1995-06-15" },
-            gender:                 { type: "string", enum: ["MALE", "FEMALE"] },
-            nationality:            { type: "string", example: "Ethiopian" },
-            sportIds:               { type: "array", items: { type: "string" }, example: ["sp_123", "sp_456"] },
-            sportId:                { type: "string", example: "clxyz..." },
-            clubId:                 { type: "string", example: "clxyz..." },
-            clubName:               { type: "string", example: "Addis Ababa Athletics Club" },
+            phoneNumber:            { type: "string", example: "+251911000002" },
+            faydaVerificationToken: { type: "string", example: "eyJhbGciOi...", description: "Required — returned by POST /fayda/verify/confirm" },
+            fanNumber:              { type: "string", nullable: true, example: "1456-1245-7895-9557" },
+            sportIds:               { type: "array", items: { type: "string" }, example: ["sp_123", "sp_456"], description: "Array of sport/discipline UUIDs (select all that apply)" },
+            sportId:                { type: "string", example: "sp_123", description: "Legacy single sport — prefer sportIds" },
+            clubId:                 { type: "string", nullable: true, example: "clxyz..." },
+            clubName:               { type: "string", nullable: true, example: "Addis Ababa Athletics Club" },
             region:                 { type: "string", example: "Addis Ababa" },
+            height:                 { type: "number", example: 175, description: "Height in cm" },
+            weight:                 { type: "number", example: 68, description: "Weight in kg" },
             emergencyContactPhone:  { type: "string", example: "+251911000000" },
             position:               { type: "string", example: "Forward" },
-            height:                 { type: "number", example: 175 },
-            weight:                 { type: "number", example: 68 },
             dominantHand:           { type: "string", enum: ["LEFT", "RIGHT", "AMBIDEXTROUS"] },
             dominantFoot:           { type: "string", enum: ["LEFT", "RIGHT", "BOTH"] },
             bloodType:              { type: "string", enum: ["A_POSITIVE", "A_NEGATIVE", "B_POSITIVE", "B_NEGATIVE", "AB_POSITIVE", "AB_NEGATIVE", "O_POSITIVE", "O_NEGATIVE"] },
+            // These are accepted but ignored — extracted from the Fayda token server-side:
+            firstName:              { type: "string", example: "Abebe", description: "Ignored — extracted from Fayda token" },
+            lastName:               { type: "string", example: "Bikila", description: "Ignored — extracted from Fayda token" },
+            dateOfBirth:            { type: "string", format: "date", example: "1995-06-15", description: "Ignored — extracted from Fayda token" },
+            gender:                 { type: "string", enum: ["MALE", "FEMALE"], description: "Ignored — extracted from Fayda token" },
+            nationality:            { type: "string", example: "Ethiopian", description: "Optional — defaults to Ethiopian" },
+          },
+        },
+        // Response shape for POST /athletes/register (self-registration mobile contract)
+        AthleteRegistrationResponse: {
+          type: "object",
+          properties: {
+            id:        { type: "string", example: "clxyz123" },
+            status:    { type: "string", enum: ["DRAFT", "PENDING"], example: "DRAFT" },
+            createdAt: { type: "string", format: "date-time" },
           },
         },
         AthleteProfile: {
@@ -694,17 +705,89 @@ const options: swaggerJsdoc.Options = {
         },
       },
 
+      // ── Meta ────────────────────────────────────────────────────────────────
+      "/meta/registration-options": {
+        get: {
+          tags: ["Meta"],
+          summary: "Registration dropdown options",
+          description: "Public endpoint returning disciplines, verified clubs, and regions for the athlete self-registration form.",
+          security: [],
+          responses: {
+            200: {
+              description: "Registration options",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          disciplines: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                id:          { type: "string", example: "sp_123" },
+                                name:        { type: "string", example: "Marathon" },
+                                description: { type: "string", nullable: true },
+                              },
+                            },
+                          },
+                          clubs: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                id:     { type: "string", example: "cl_xyz" },
+                                name:   { type: "string", example: "Addis Ababa Athletics Club" },
+                                region: { type: "string", nullable: true, example: "Addis Ababa" },
+                                city:   { type: "string", nullable: true, example: "Addis Ababa" },
+                              },
+                            },
+                          },
+                          regions: {
+                            type: "array",
+                            items: { type: "string" },
+                            example: ["Addis Ababa", "Oromia", "Amhara"],
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
       // ── Athletes ─────────────────────────────────────────────────────────────
       "/athletes/register": {
         post: {
           tags: ["Athletes"],
           summary: "Self-register as an athlete",
-          description: "Public. Status starts as DRAFT.",
+          description: "Public endpoint. Requires a Fayda verification token. Status starts as DRAFT. Returns a lightweight confirmation (id, status, createdAt) — the user must wait for federation approval before logging in.",
           security: [],
           requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AthleteRequest" } } } },
           responses: {
-            201: { description: "Registered", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
-            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+            201: {
+              description: "Registration submitted for review",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Your registration is under review. You will receive an email once approved." },
+                      data: { $ref: "#/components/schemas/AthleteRegistrationResponse" },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Validation failed or invalid Fayda token", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
             409: { description: "Email exists", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
@@ -744,7 +827,6 @@ const options: swaggerJsdoc.Options = {
             404: { description: "No verification record found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
-      },
       },
       // ── Payments ───────────────────────────────────────────────────────────
       "/payments/mock/webhook": {
