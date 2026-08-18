@@ -349,6 +349,236 @@ export class AthleteService {
 
     return { message: "Athlete deleted successfully." };
   }
+
+  // ─── Dashboard Methods ───────────────────────────────────────────────────
+
+  /**
+   * GET /athletes/profile — shared dashboard profile
+   * Returns the full athlete profile with computed fields for
+   * home screen, profile data screen, and personal bests screen.
+   */
+  async getDashboardProfile(userId: string) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const now = new Date();
+    const dob = new Date(athlete.dateOfBirth);
+    const ageYears = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+
+    // Derive ageTier from age
+    let ageTier: string;
+    if (ageYears >= 20) ageTier = "Senior";
+    else if (ageYears >= 18) ageTier = "U20";
+    else if (ageYears >= 16) ageTier = "Junior";
+    else ageTier = "Youth";
+
+    // Personal bests
+    const allPersonalBests = await athleteRepository.getPersonalBests(athlete.id);
+    const allTime = allPersonalBests.filter((pb) => pb.scope === "ALL_TIME").map((pb) => ({
+      id: pb.id, event: pb.event, mark: pb.mark,
+      date: pb.date?.toISOString() ?? null, venue: pb.venue,
+    }));
+    const season = allPersonalBests.filter((pb) => pb.scope === "SEASON").map((pb) => ({
+      id: pb.id, event: pb.event, mark: pb.mark,
+      date: pb.date?.toISOString() ?? null, venue: pb.venue,
+    }));
+
+    // Career records (top personal bests for career card)
+    const careerRecords = allTime.slice(0, 5).map((pb) => ({
+      label: `${pb.event} PB`,
+      value: pb.mark,
+    }));
+
+    // Summary counts
+    const [trainingSessions, weightEntries, appliedCompetitions] = await Promise.all([
+      athleteRepository.countTrainingSessions(athlete.id),
+      athleteRepository.countWeightEntries(athlete.id),
+      athleteRepository.countAppliedCompetitions(athlete.id),
+    ]);
+
+    return {
+      id: athlete.id,
+      user: athlete.user,
+      name: `${athlete.user.firstName} ${athlete.user.lastName}`.trim(),
+      amharicName: athlete.amharicName ?? null,
+      fanNumber: athlete.faydaNin ?? null,
+      photoUrl: athlete.photoUrl ?? null,
+      faydaVerified: athlete.faydaVerified,
+      faydaVerifiedAt: athlete.faydaVerifiedAt?.toISOString() ?? null,
+      primaryEvent: athlete.primaryEvent ?? athlete.sport?.name ?? null,
+      clubId: athlete.clubId ?? null,
+      clubName: athlete.club?.name ?? athlete.clubName ?? null,
+      region: athlete.region ?? null,
+      ageTier,
+      gender: athlete.gender,
+      dateOfBirth: athlete.dateOfBirth.toISOString().split("T")[0],
+      nationality: athlete.nationality,
+      contact: {
+        phoneNumber: athlete.user.phoneNumber ?? null,
+        email: athlete.user.email ?? null,
+      },
+      fitnessStats: {
+        heightCm: athlete.height ?? null,
+        weightKg: athlete.weight ?? null,
+        ageYears,
+      },
+      careerRecords,
+      personalBests: { allTime, season },
+      summaryCounts: { trainingSessions, weightEntries, appliedCompetitions },
+    };
+  }
+
+  /**
+   * PATCH /athletes/profile — update editable profile fields
+   */
+  async updateProfile(userId: string, data: Record<string, unknown>) {
+    // Filter out undefined values
+    const updates = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined)
+    );
+    if (Object.keys(updates).length === 0) {
+      throw new BadRequestError("No fields to update.");
+    }
+
+    const updated = await athleteRepository.updateProfile(userId, updates);
+    if (!updated) throw new NotFoundError("Athlete profile not found.");
+
+    return {
+      id: updated.id,
+      updatedFields: Object.keys(updates),
+    };
+  }
+
+  /**
+   * GET /athletes/profile/personal-bests
+   */
+  async getPersonalBests(userId: string) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const all = await athleteRepository.getPersonalBests(athlete.id);
+    return {
+      allTime: all.filter((pb) => pb.scope === "ALL_TIME").map((pb) => ({
+        id: pb.id, event: pb.event, mark: pb.mark,
+        date: pb.date?.toISOString().split("T")[0] ?? null, venue: pb.venue,
+      })),
+      season: all.filter((pb) => pb.scope === "SEASON").map((pb) => ({
+        id: pb.id, event: pb.event, mark: pb.mark,
+        date: pb.date?.toISOString().split("T")[0] ?? null, venue: pb.venue,
+      })),
+    };
+  }
+
+  /**
+   * POST /athletes/profile/personal-bests
+   */
+  async createPersonalBest(userId: string, data: { event: string; mark: string; date?: Date; venue?: string; scope?: "ALL_TIME" | "SEASON" }) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const pb = await athleteRepository.createPersonalBest(athlete.id, data);
+    return {
+      id: pb.id, event: pb.event, mark: pb.mark,
+      date: pb.date?.toISOString().split("T")[0] ?? null,
+      venue: pb.venue, scope: pb.scope,
+    };
+  }
+
+  /**
+   * GET /athletes/profile/training-logs
+   */
+  async getTrainingLogs(userId: string) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const logs = await athleteRepository.getTrainingLogs(athlete.id);
+    return logs.map((l) => ({
+      id: l.id, date: l.date.toISOString().split("T")[0],
+      type: l.type, distanceKm: l.distanceKm,
+      durationMinutes: l.durationMinutes, notes: l.notes,
+    }));
+  }
+
+  /**
+   * POST /athletes/profile/training-logs
+   */
+  async createTrainingLog(userId: string, data: { date: Date; type: string; distanceKm: number; durationMinutes: number; notes?: string }) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const log = await athleteRepository.createTrainingLog(athlete.id, data);
+    return {
+      id: log.id, date: log.date.toISOString().split("T")[0],
+      type: log.type, distanceKm: log.distanceKm,
+      durationMinutes: log.durationMinutes, notes: log.notes,
+    };
+  }
+
+  /**
+   * GET /athletes/profile/weight-logs
+   */
+  async getWeightLogs(userId: string) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const logs = await athleteRepository.getWeightLogs(athlete.id);
+    return logs.map((l, i) => ({
+      id: l.id, date: l.date.toISOString().split("T")[0],
+      weightKg: l.weightKg,
+      changeKg: i < logs.length - 1 ? Math.round((l.weightKg - logs[i + 1].weightKg) * 10) / 10 : 0,
+    }));
+  }
+
+  /**
+   * POST /athletes/profile/weight-logs
+   */
+  async createWeightLog(userId: string, data: { date: Date; weightKg: number }) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const log = await athleteRepository.createWeightLog(athlete.id, data);
+    // Get previous entry for change calculation
+    const logs = await athleteRepository.getWeightLogs(athlete.id);
+    const prevIndex = logs.findIndex((l) => l.id === log.id);
+    const prev = prevIndex < logs.length - 1 ? logs[prevIndex + 1] : null;
+
+    return {
+      id: log.id, date: log.date.toISOString().split("T")[0],
+      weightKg: log.weightKg,
+      changeKg: prev ? Math.round((log.weightKg - prev.weightKg) * 10) / 10 : 0,
+    };
+  }
+
+  /**
+   * GET /athletes/applications
+   */
+  async getApplications(userId: string) {
+    const athlete = await athleteRepository.findDashboardProfile(userId);
+    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+
+    const registrations = await athleteRepository.getApplications(athlete.id);
+    return registrations.map((r) => ({
+      id: r.id,
+      eventId: r.eventId,
+      title: r.event.title,
+      disciplines: r.event.disciplines ?? [],
+      appliedAt: r.createdAt.toISOString(),
+      statusLabel: r.status,
+      sourceLabel: "application",
+      organizer: r.event.organizerName,
+      location: r.event.venue,
+      city: null,
+      imageUrl: r.event.bannerUrl,
+      athleteCount: 1,
+      qrCodeValue: r.id,
+      qrCodeStatus: "ready",
+      registeredMemberName: `${athlete.user.firstName} ${athlete.user.lastName}`,
+      registeredMemberType: "Athlete",
+      registrationType: "Application",
+      clubName: athlete.club?.name ?? athlete.clubName ?? null,
+      submissionStatus: r.status,
+    }));
+  }
 }
 
 export const athleteService = new AthleteService();

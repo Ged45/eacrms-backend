@@ -320,6 +320,104 @@ export class AthleteRepository {
     });
     return clubs.map((c) => c.region).filter(Boolean) as string[];
   }
+
+  // ─── Dashboard Methods ─────────────────────────────────────────────────────
+
+  async findDashboardProfile(userId: string) {
+    return prisma.athlete.findUnique({
+      where: { userId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, status: true, email: true, phoneNumber: true } },
+        club: { select: { id: true, name: true } },
+        sport: { select: { id: true, name: true } },
+        athleteSports: { include: { sport: { select: { id: true, name: true } } } },
+      },
+    });
+  }
+
+  async updateProfile(userId: string, data: Record<string, unknown>) {
+    const athlete = await prisma.athlete.findUnique({ where: { userId } });
+    if (!athlete) return null;
+
+    const userFields: Record<string, unknown> = {};
+    const athleteFields: Record<string, unknown> = {};
+
+    if (data.phoneNumber !== undefined) userFields.phoneNumber = data.phoneNumber;
+    if (data.email !== undefined) userFields.email = data.email;
+    if (data.photoUrl !== undefined) athleteFields.photoUrl = data.photoUrl;
+    if (data.amharicName !== undefined) athleteFields.amharicName = data.amharicName;
+    if (data.primaryEvent !== undefined) athleteFields.primaryEvent = data.primaryEvent;
+    if (data.region !== undefined) athleteFields.region = data.region;
+    if (data.clubName !== undefined) athleteFields.clubName = data.clubName;
+    if (data.clubId !== undefined) athleteFields.clubId = data.clubId;
+    if (data.height !== undefined) athleteFields.height = data.height;
+    if (data.weight !== undefined) athleteFields.weight = data.weight;
+
+    return prisma.$transaction(async (tx) => {
+      if (Object.keys(userFields).length > 0) {
+        await tx.user.update({ where: { id: userId }, data: userFields });
+      }
+      if (Object.keys(athleteFields).length > 0) {
+        await tx.athlete.update({ where: { userId }, data: athleteFields });
+      }
+      return tx.athlete.findUnique({
+        where: { userId },
+        include: { user: { select: { id: true, firstName: true, lastName: true, status: true, email: true, phoneNumber: true } } },
+      });
+    });
+  }
+
+  async getPersonalBests(athleteId: string) {
+    return prisma.personalBest.findMany({ where: { athleteId }, orderBy: { date: "desc" } });
+  }
+
+  async createPersonalBest(athleteId: string, data: { event: string; mark: string; date?: Date; venue?: string; scope?: "ALL_TIME" | "SEASON" }) {
+    return prisma.personalBest.create({ data: { athleteId, ...data } });
+  }
+
+  async getTrainingLogs(athleteId: string) {
+    return prisma.trainingLog.findMany({ where: { athleteId }, orderBy: { date: "desc" } });
+  }
+
+  async createTrainingLog(athleteId: string, data: { date: Date; type: string; distanceKm: number; durationMinutes: number; notes?: string }) {
+    return prisma.trainingLog.create({ data: { athleteId, ...data } });
+  }
+
+  async getWeightLogs(athleteId: string) {
+    return prisma.weightLog.findMany({ where: { athleteId }, orderBy: { date: "desc" } });
+  }
+
+  async createWeightLog(athleteId: string, data: { date: Date; weightKg: number }) {
+    return prisma.weightLog.create({ data: { athleteId, ...data } });
+  }
+
+  async getApplications(athleteId: string) {
+    return prisma.eventRegistration.findMany({
+      where: { athleteId },
+      include: {
+        event: {
+          select: {
+            id: true, title: true, venue: true, category: true,
+            status: true, disciplines: true, bannerUrl: true,
+            organizerName: true, schedule: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async countTrainingSessions(athleteId: string) {
+    return prisma.trainingLog.count({ where: { athleteId } });
+  }
+
+  async countWeightEntries(athleteId: string) {
+    return prisma.weightLog.count({ where: { athleteId } });
+  }
+
+  async countAppliedCompetitions(athleteId: string) {
+    return prisma.eventRegistration.count({ where: { athleteId } });
+  }
 }
 
 export const athleteRepository = new AthleteRepository();

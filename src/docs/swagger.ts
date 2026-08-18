@@ -209,6 +209,79 @@ const options: swaggerJsdoc.Options = {
           },
         },
 
+        AthleteDashboardProfile: {
+          type: "object",
+          description: "Shared dashboard profile response for GET /athletes/profile",
+          properties: {
+            id:             { type: "string" },
+            user:           { type: "object", properties: { id: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" }, status: { type: "string" } } },
+            name:           { type: "string", example: "Abebe Bikila" },
+            amharicName:    { type: "string", nullable: true },
+            fanNumber:      { type: "string", example: "1456-1245-7895-9557" },
+            photoUrl:       { type: "string", nullable: true },
+            faydaVerified:  { type: "boolean" },
+            faydaVerifiedAt:{ type: "string", format: "date-time", nullable: true },
+            primaryEvent:   { type: "string", example: "Marathon" },
+            clubId:         { type: "string", nullable: true },
+            clubName:       { type: "string", example: "Addis Ababa Athletics Club" },
+            region:         { type: "string", nullable: true },
+            ageTier:        { type: "string", enum: ["Senior", "U20", "Junior", "Youth"] },
+            gender:         { type: "string", enum: ["MALE", "FEMALE"] },
+            dateOfBirth:    { type: "string", format: "date" },
+            nationality:    { type: "string" },
+            contact:        { type: "object", properties: { phoneNumber: { type: "string", nullable: true }, email: { type: "string", nullable: true } } },
+            fitnessStats:   { type: "object", properties: { heightCm: { type: "number", nullable: true }, weightKg: { type: "number", nullable: true }, ageYears: { type: "number" } } },
+            careerRecords:  { type: "array", items: { type: "object", properties: { label: { type: "string" }, value: { type: "string" } } } },
+            personalBests:  { type: "object", properties: { allTime: { type: "array", items: { $ref: "#/components/schemas/PersonalBestRecord" } }, season: { type: "array", items: { $ref: "#/components/schemas/PersonalBestRecord" } } } },
+            summaryCounts:  { type: "object", properties: { trainingSessions: { type: "number" }, weightEntries: { type: "number" }, appliedCompetitions: { type: "number" } } },
+          },
+        },
+        PersonalBestRecord: {
+          type: "object",
+          properties: {
+            id:    { type: "string" },
+            event: { type: "string", example: "100m" },
+            mark:  { type: "string", example: "9.63s" },
+            date:  { type: "string", format: "date", nullable: true },
+            venue: { type: "string", nullable: true },
+          },
+        },
+        TrainingLogEntry: {
+          type: "object",
+          properties: {
+            id:              { type: "string" },
+            date:            { type: "string", format: "date" },
+            type:            { type: "string", example: "Long Run" },
+            distanceKm:      { type: "number" },
+            durationMinutes: { type: "number" },
+            notes:           { type: "string", nullable: true },
+          },
+        },
+        WeightLogEntry: {
+          type: "object",
+          properties: {
+            id:        { type: "string" },
+            date:      { type: "string", format: "date" },
+            weightKg:  { type: "number" },
+            changeKg:  { type: "number" },
+          },
+        },
+        ApplicationEntry: {
+          type: "object",
+          properties: {
+            id:          { type: "string" },
+            eventId:     { type: "string" },
+            title:       { type: "string" },
+            disciplines: { type: "array", items: { type: "string" } },
+            appliedAt:   { type: "string", format: "date-time" },
+            statusLabel: { type: "string" },
+            organizer:   { type: "string" },
+            location:    { type: "string", nullable: true },
+            imageUrl:    { type: "string", nullable: true },
+            clubName:    { type: "string", nullable: true },
+          },
+        },
+
         // Coach
         CoachRequest: {
           type: "object",
@@ -812,10 +885,43 @@ const options: swaggerJsdoc.Options = {
         get: {
           tags: ["Athletes"],
           summary: "Get my athlete profile",
+          description: "Returns the full dashboard profile with personal bests, training/weight summary counts.",
           responses: {
-            200: { description: "Profile", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/AthleteProfile" } } } } } },
+            200: { description: "Dashboard profile", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/AthleteDashboardProfile" } } } } } },
             401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+        patch: {
+          tags: ["Athletes"],
+          summary: "Update athlete profile",
+          description: "Updates editable profile fields from the profile data screen.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    phoneNumber:  { type: "string" },
+                    email:        { type: "string", format: "email" },
+                    primaryEvent: { type: "string" },
+                    region:       { type: "string" },
+                    clubName:     { type: "string" },
+                    clubId:       { type: "string" },
+                    height:       { type: "number" },
+                    weight:       { type: "number" },
+                    photoUrl:     { type: "string", format: "uri" },
+                    amharicName:  { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Profile updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { type: "object", properties: { id: { type: "string" }, updatedFields: { type: "array", items: { type: "string" } } } } } } } } },
+            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+            404: { description: "Athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
@@ -828,6 +934,218 @@ const options: swaggerJsdoc.Options = {
             200: { description: "Fayda verification data", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { verificationId: { type: "string" }, status: { type: "string" }, demographicData: { type: "object", nullable: true } } } } } } } },
             401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "No verification record found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/athletes/profile/personal-bests": {
+        get: {
+          tags: ["Athletes"],
+          summary: "Get personal bests",
+          description: "Returns all-time and season personal best records.",
+          responses: {
+            200: {
+              description: "Personal bests",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          allTime: { type: "array", items: { $ref: "#/components/schemas/PersonalBestRecord" } },
+                          season: { type: "array", items: { $ref: "#/components/schemas/PersonalBestRecord" } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ["Athletes"],
+          summary: "Add a personal best",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["event", "mark"],
+                  properties: {
+                    event: { type: "string" },
+                    mark: { type: "string" },
+                    date: { type: "string", format: "date" },
+                    venue: { type: "string" },
+                    scope: { type: "string", enum: ["ALL_TIME", "SEASON"] },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: "Personal best added",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: { $ref: "#/components/schemas/PersonalBestRecord" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/athletes/profile/training-logs": {
+        get: {
+          tags: ["Athletes"],
+          summary: "Get training logs",
+          description: "Returns the athlete training history.",
+          responses: {
+            200: {
+              description: "Training logs",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/TrainingLogEntry" } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ["Athletes"],
+          summary: "Log a training session",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["date", "type", "distanceKm", "durationMinutes"],
+                  properties: {
+                    date: { type: "string", format: "date" },
+                    type: { type: "string" },
+                    distanceKm: { type: "number" },
+                    durationMinutes: { type: "number" },
+                    notes: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: "Training session logged",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: { $ref: "#/components/schemas/TrainingLogEntry" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/athletes/profile/weight-logs": {
+        get: {
+          tags: ["Athletes"],
+          summary: "Get weight logs",
+          description: "Returns the athlete weight history with change deltas.",
+          responses: {
+            200: {
+              description: "Weight logs",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/WeightLogEntry" } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ["Athletes"],
+          summary: "Log weight entry",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["date", "weightKg"],
+                  properties: {
+                    date: { type: "string", format: "date" },
+                    weightKg: { type: "number" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: "Weight entry logged",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                      data: { $ref: "#/components/schemas/WeightLogEntry" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/athletes/applications": {
+        get: {
+          tags: ["Athletes"],
+          summary: "Get applied competitions",
+          description: "Returns the athlete competition applications.",
+          responses: {
+            200: {
+              description: "Applications",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/ApplicationEntry" } },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },

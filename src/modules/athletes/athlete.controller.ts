@@ -54,11 +54,11 @@ export class AthleteController {
   });
 
   /**
-   * Get Logged-in Athlete Profile
+   * Get Logged-in Athlete Dashboard Profile
    * GET /api/v1/athletes/profile
    */
   getProfile = asyncHandler(async (req: Request, res: Response) => {
-    const athlete = await athleteService.getByUserId(req.user.userId);
+    const athlete = await athleteService.getDashboardProfile(req.user.userId);
 
     return res.status(200).json({
       success: true,
@@ -173,6 +173,76 @@ export class AthleteController {
         demographicData: verification.verifiedData ?? null,
       },
     });
+  });
+
+  // ─── Dashboard Handlers ──────────────────────────────────────────────────
+
+  /**
+   * PATCH /api/v1/athletes/profile
+   */
+  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const result = await athleteService.updateProfile(req.user.userId, req.body);
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: result,
+    });
+  });
+
+  /**
+   * GET /api/v1/athletes/profile/personal-bests
+   */
+  getPersonalBests = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.getPersonalBests(req.user.userId);
+    return res.status(200).json({ success: true, data });
+  });
+
+  /**
+   * POST /api/v1/athletes/profile/personal-bests
+   */
+  createPersonalBest = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.createPersonalBest(req.user.userId, req.body);
+    return res.status(201).json({ success: true, message: "Personal best added successfully", data });
+  });
+
+  /**
+   * GET /api/v1/athletes/profile/training-logs
+   */
+  getTrainingLogs = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.getTrainingLogs(req.user.userId);
+    return res.status(200).json({ success: true, data });
+  });
+
+  /**
+   * POST /api/v1/athletes/profile/training-logs
+   */
+  createTrainingLog = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.createTrainingLog(req.user.userId, req.body);
+    return res.status(201).json({ success: true, message: "Training session logged", data });
+  });
+
+  /**
+   * GET /api/v1/athletes/profile/weight-logs
+   */
+  getWeightLogs = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.getWeightLogs(req.user.userId);
+    return res.status(200).json({ success: true, data });
+  });
+
+  /**
+   * POST /api/v1/athletes/profile/weight-logs
+   */
+  createWeightLog = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.createWeightLog(req.user.userId, req.body);
+    return res.status(201).json({ success: true, message: "Weight entry logged", data });
+  });
+
+  /**
+   * GET /api/v1/athletes/applications
+   */
+  getApplications = asyncHandler(async (req: Request, res: Response) => {
+    const data = await athleteService.getApplications(req.user.userId);
+    return res.status(200).json({ success: true, data });
   });
 }
 

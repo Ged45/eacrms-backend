@@ -4,7 +4,7 @@ import { athleteController } from "./athlete.controller";
 
 import { validate } from "../../middleware/validate.middleware";
 
-import { createAthleteSchema, createAthleteByAdminSchema } from "./athlete.validation";
+import { createAthleteSchema, createAthleteByAdminSchema, updateProfileSchema, createPersonalBestSchema, createTrainingLogSchema, createWeightLogSchema } from "./athlete.validation";
 
 import { authenticate } from "../../middleware/auth.middleware";
 
@@ -45,10 +45,62 @@ router.get(
     athleteController.getProfile
 );
 
+router.patch(
+    "/profile",
+    authenticate,
+    validate(updateProfileSchema),
+    athleteController.updateProfile
+);
+
 router.get(
     "/profile/fayda",
     authenticate,
     athleteController.getFaydaForProfile
+);
+
+router.get(
+    "/profile/personal-bests",
+    authenticate,
+    athleteController.getPersonalBests
+);
+
+router.post(
+    "/profile/personal-bests",
+    authenticate,
+    validate(createPersonalBestSchema),
+    athleteController.createPersonalBest
+);
+
+router.get(
+    "/profile/training-logs",
+    authenticate,
+    athleteController.getTrainingLogs
+);
+
+router.post(
+    "/profile/training-logs",
+    authenticate,
+    validate(createTrainingLogSchema),
+    athleteController.createTrainingLog
+);
+
+router.get(
+    "/profile/weight-logs",
+    authenticate,
+    athleteController.getWeightLogs
+);
+
+router.post(
+    "/profile/weight-logs",
+    authenticate,
+    validate(createWeightLogSchema),
+    athleteController.createWeightLog
+);
+
+router.get(
+    "/applications",
+    authenticate,
+    athleteController.getApplications
 );
 
 /*

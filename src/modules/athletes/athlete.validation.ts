@@ -76,3 +76,39 @@ export const createAthleteByAdminSchema = z.object({
 
 export type CreateAthleteInput = z.infer<typeof createAthleteSchema>;
 export type CreateAthleteByAdminInput = z.infer<typeof createAthleteByAdminSchema>;
+
+// ─── Dashboard Endpoints ─────────────────────────────────────────────────────
+
+export const updateProfileSchema = z.object({
+    phoneNumber: z.string().optional(),
+    email: z.string().email().optional(),
+    primaryEvent: z.string().optional(),
+    region: z.string().optional(),
+    clubName: z.string().optional(),
+    clubId: z.string().optional(),
+    height: z.number().min(40).max(250).optional(),
+    weight: z.number().min(10).max(400).optional(),
+    photoUrl: z.string().url().max(2000).optional(),
+    amharicName: z.string().max(100).optional(),
+});
+
+export const createPersonalBestSchema = z.object({
+    event: z.string().min(1).max(100),
+    mark: z.string().min(1).max(50),
+    date: z.coerce.date().optional(),
+    venue: z.string().max(200).optional(),
+    scope: z.enum(["ALL_TIME", "SEASON"]).optional(),
+});
+
+export const createTrainingLogSchema = z.object({
+    date: z.coerce.date(),
+    type: z.string().min(1).max(100),
+    distanceKm: z.number().min(0),
+    durationMinutes: z.number().int().min(0),
+    notes: z.string().max(2000).optional(),
+});
+
+export const createWeightLogSchema = z.object({
+    date: z.coerce.date(),
+    weightKg: z.number().min(10).max(500),
+});

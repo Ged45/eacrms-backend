@@ -253,6 +253,10 @@ model Athlete {
   region              String?
   emergencyContactPhone String?
 
+  photoUrl      String?
+  amharicName   String?
+  primaryEvent  String?
+
   height Int?
   weight Int?
 
@@ -280,6 +284,62 @@ model Athlete {
   eventRegistrations EventRegistration[]
   payments           Payment[]
   athleteSports      AthleteSport[]
+  personalBests      PersonalBest[]
+  trainingLogs       TrainingLog[]
+  weightLogs         WeightLog[]
+}
+
+enum PersonalBestScope {
+  ALL_TIME
+  SEASON
+}
+
+model PersonalBest {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  event  String
+  mark   String
+  date   DateTime?
+  venue  String?
+  scope  PersonalBestScope @default(ALL_TIME)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
+}
+
+model TrainingLog {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  date             DateTime
+  type             String
+  distanceKm       Float
+  durationMinutes  Int
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
+}
+
+model WeightLog {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  date      DateTime
+  weightKg  Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
 }
 
 model Coach {
