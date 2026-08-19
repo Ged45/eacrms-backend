@@ -63,11 +63,11 @@ export const faydaService = {
       details: { nin },
     });
 
+    const exposeOtp = process.env.NODE_ENV !== "production" || process.env.EXPOSE_OTP === "true";
     return {
       verificationId: verification.id,
       message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-      // Expose OTP in dev only — remove in production
-      ...(process.env.NODE_ENV !== "production" && { otp }),
+      ...(exposeOtp && { otp }),
     };
   },
 
@@ -117,10 +117,11 @@ export const faydaService = {
       details: { nin },
     });
 
+    const exposeOtp = process.env.NODE_ENV !== "production" || process.env.EXPOSE_OTP === "true";
     return {
       verificationId: verification.id,
       message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-      ...(process.env.NODE_ENV !== "production" && { otp }),
+      ...(exposeOtp && { otp }),
     };
   },
 
@@ -148,10 +149,11 @@ export const faydaService = {
       details: { nin },
     });
 
+    const exposeOtp = process.env.NODE_ENV !== "production" || process.env.EXPOSE_OTP === "true";
     return {
       verificationId: verification.id,
       message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-      ...(process.env.NODE_ENV !== "production" && { otp }),
+      ...(exposeOtp && { otp }),
     };
   },
 
