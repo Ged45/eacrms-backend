@@ -73,11 +73,12 @@ export const eventRepository = {
     };
 
     return prisma.$transaction(async (tx) => {
-      const result = await tx.event.updateMany({
-        where: { id, status: previousStatus },
+      const existing = await tx.event.findUnique({ where: { id }, select: { status: true } });
+      if (!existing || existing.status !== previousStatus) return null;
+      const result = await tx.event.update({
+        where: { id },
         data: updateData,
       });
-      if (result.count !== 1) return null;
 
       await tx.eventStatusHistory.create({
         data: { eventId: id, previousStatus, newStatus, changedById, reason },
