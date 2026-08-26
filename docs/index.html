@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EACRMS Backend — Project Documentation</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232736;
+    --border: #2e3348;
+    --text: #e1e4ed;
+    --text-dim: #8b90a5;
+    --accent: #6c8cff;
+    --accent2: #4ecdc4;
+    --accent3: #ff6b9d;
+    --accent4: #ffd93d;
+    --green: #4ecdc4;
+    --red: #ff6b6b;
+    --orange: #ffa94d;
+    --purple: #b197fc;
+    --code-bg: #141620;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ─── Layout ─── */
+  .wrapper { display: flex; min-height: 100vh; }
+  nav.sidebar {
+    position: sticky; top: 0; height: 100vh; width: 280px;
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 24px 0; flex-shrink: 0;
+  }
+  nav.sidebar h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); padding: 0 20px; margin-bottom: 8px;
+  }
+  nav.sidebar .brand {
+    padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  }
+  nav.sidebar .brand h1 { font-size: 20px; color: var(--accent); }
+  nav.sidebar .brand p { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  nav.sidebar ul { list-style: none; }
+  nav.sidebar li a {
+    display: block; padding: 7px 20px 7px 28px; font-size: 13.5px;
+    color: var(--text-dim); transition: all .15s;
+  }
+  nav.sidebar li a:hover, nav.sidebar li a.active {
+    color: var(--text); background: var(--surface2); text-decoration: none;
+    border-left: 3px solid var(--accent); padding-left: 25px;
+  }
+  nav.sidebar .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--accent); padding: 18px 20px 6px; font-weight: 700;
+  }
+
+  main.content { flex: 1; padding: 40px 56px; max-width: 960px; }
+  h1 { font-size: 32px; margin-bottom: 8px; color: #fff; }
+  h2 {
+    font-size: 22px; margin-top: 56px; margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border); color: #fff;
+  }
+  h3 { font-size: 17px; margin-top: 28px; margin-bottom: 10px; color: var(--accent2); }
+  h4 { font-size: 15px; margin-top: 20px; margin-bottom: 8px; color: var(--purple); }
+  p, li { color: var(--text); }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin-bottom: 5px; }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; margin-bottom: 16px;
+  }
+  .card-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .stat-card .number { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 12px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ─── Code ─── */
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; overflow-x: auto;
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.6; margin-bottom: 16px;
+  }
+  code {
+    font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 13px;
+  }
+  :not(pre) > code {
+    background: var(--surface2); padding: 2px 6px; border-radius: 4px;
+    color: var(--accent2); font-size: 12.5px;
+  }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%; border-collapse: collapse; margin-bottom: 16px;
+    font-size: 13.5px;
+  }
+  th, td {
+    text-align: left; padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { background: var(--surface2); color: var(--text-dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover td { background: var(--surface); }
+
+  /* ─── Badges ─── */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-green { background: rgba(78,205,196,.15); color: var(--green); }
+  .badge-red { background: rgba(255,107,107,.15); color: var(--red); }
+  .badge-orange { background: rgba(255,169,77,.15); color: var(--orange); }
+  .badge-blue { background: rgba(108,140,255,.15); color: var(--accent); }
+  .badge-purple { background: rgba(177,151,252,.15); color: var(--purple); }
+
+  /* ─── Misc ─── */
+  .tag {
+    display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 4px; font-size: 12px; color: var(--text-dim); margin: 2px;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .note {
+    background: rgba(108,140,255,.08); border-left: 3px solid var(--accent);
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px;
+    font-size: 13.5px;
+  }
+  .warn {
+    background: rgba(255,169,77,.08); border-left: 3px solid var(--orange);
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px;
+    font-size: 13.5px;
+  }
+  .method { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+  .method-get { background: rgba(78,205,196,.15); color: var(--green); }
+  .method-post { background: rgba(108,140,255,.15); color: var(--accent); }
+  .method-patch { background: rgba(255,169,77,.15); color: var(--orange); }
+  .method-delete { background: rgba(255,107,107,.15); color: var(--red); }
+
+  @media print {
+    nav.sidebar { display: none; }
+    main.content { max-width: 100%; padding: 20px; }
+    body { background: #fff; color: #111; }
+    pre { background: #f5f5f5; border-color: #ddd; color: #111; }
+    th, td { border-color: #ddd; }
+    .card, .stat-card { border-color: #ddd; }
+  }
+  @media (max-width: 800px) {
+    nav.sidebar { display: none; }
+    main.content { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SIDEBAR                                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="brand">
+    <h1>EACRMS Backend</h1>
+    <p>v1.0.0 — August 2026</p>
+  </div>
+
+  <div class="section-label">Overview</div>
+  <ul>
+    <li><a href="#overview">Project Overview</a></li>
+    <li><a href="#tech-stack">Tech Stack</a></li>
+    <li><a href="#project-stats">Project Stats</a></li>
+    <li><a href="#directory-structure">Directory Structure</a></li>
+  </ul>
+
+  <div class="section-label">Architecture</div>
+  <ul>
+    <li><a href="#architecture">Architecture Overview</a></li>
+    <li><a href="#entry-points">Entry Points</a></li>
+    <li><a href="#module-pattern">Module Pattern</a></li>
+  </ul>
+
+  <div class="section-label">Database</div>
+  <ul>
+    <li><a href="#database">Database Schema</a></li>
+    <li><a href="#enums">Enums</a></li>
+    <li><a href="#models">Models</a></li>
+    <li><a href="#relations">Relations</a></li>
+    <li><a href="#seeding">Seeding</a></li>
+  </ul>
+
+  <div class="section-label">API Reference</div>
+  <ul>
+    <li><a href="#auth-api">Authentication</a></li>
+    <li><a href="#verification-api">Verification</a></li>
+    <li><a href="#users-api">Users</a></li>
+    <li><a href="#athletes-api">Athletes</a></li>
+    <li><a href="#clubs-api">Clubs</a></li>
+    <li><a href="#coaches-api">Coaches</a></li>
+    <li><a href="#events-api">Events</a></li>
+    <li><a href="#fayda-api">Fayda (National ID)</a></li>
+    <li><a href="#payments-api">Payments</a></li>
+    <li><a href="#policies-api">Policies</a></li>
+    <li><a href="#news-api">News</a></li>
+    <li><a href="#meta-api">Meta</a></li>
+    <li><a href="#health-api">Health</a></li>
+  </ul>
+
+  <div class="section-label">Security</div>
+  <ul>
+    <li><a href="#rbac">RBAC &amp; Permissions</a></li>
+    <li><a href="#middleware">Middleware</a></li>
+    <li><a href="#rate-limiting">Rate Limiting</a></li>
+    <li><a href="#jwt">JWT Tokens</a></li>
+  </ul>
+
+  <div class="section-label">Infrastructure</div>
+  <ul>
+    <li><a href="#env-vars">Environment Variables</a></li>
+    <li><a href="#docker">Docker</a></li>
+    <li><a href="#cicd">CI/CD Pipeline</a></li>
+    <li><a href="#deployment">Deployment</a></li>
+  </ul>
+
+  <div class="section-label">Reference</div>
+  <ul>
+    <li><a href="#error-handling">Error Handling</a></li>
+    <li><a href="#validation">Validation</a></li>
+    <li><a href="#caching">Caching (Redis)</a></li>
+    <li><a href="#file-structure-ref">File Reference</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MAIN CONTENT                                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<main class="content">
+
+<!-- ─── OVERVIEW ──────────────────────────────────────────────────────── -->
+<section id="overview">
+<h1>EACRMS Backend Documentation</h1>
+<p style="color:var(--text-dim); margin-bottom: 24px;">
+  <strong>EACRMS</strong> — Ethiopian Athletics Club &amp; Regional Management System<br>
+  Backend REST API for managing athletes, coaches, clubs, events, payments, and federation policies.
+</p>
+
+<div class="card-grid">
+  <div class="stat-card"><div class="number">17</div><div class="label">Modules</div></div>
+  <div class="stat-card"><div class="number">70+</div><div class="label">API Endpoints</div></div>
+  <div class="stat-card"><div class="number">30+</div><div class="label">DB Models</div></div>
+  <div class="stat-card"><div class="number">40+</div><div class="label">Permissions</div></div>
+</div>
+
+<p>
+  This is a production backend for the Ethiopian Athletics Federation (EAF), providing a
+  comprehensive management platform for athletes, coaches, clubs, events, payments, and
+  federation policies. It integrates with Ethiopia's <strong>Fayda National ID</strong> system
+  for identity verification and <strong>Africa's Talking</strong> for SMS/phone OTP.
+</p>
+</section>
+
+<!-- ─── TECH STACK ────────────────────────────────────────────────────── -->
+<section id="tech-stack">
+<h2>Tech Stack</h2>
+<div class="card-grid">
+  <div class="stat-card"><div class="number" style="font-size:18px">Node.js 22</div><div class="label">Runtime</div></div>
+  <div class="stat-card"><div class="number" style="font-size:18px">TypeScript</div><div class="label">Language</div></div>
+  <div class="stat-card"><div class="number" style="font-size:18px">Express 5</div><div class="label">HTTP Framework</div></div>
+  <div class="stat-card"><div class="number" style="font-size:18px">Prisma 6</div><div class="label">ORM</div></div>
+</div>
+
+<table>
+  <tr><th>Category</th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td>Runtime</td><td>Node.js 22 (Alpine)</td><td>Server runtime</td></tr>
+  <tr><td>Language</td><td>TypeScript 7</td><td>Type-safe development</td></tr>
+  <tr><td>HTTP</td><td>Express 5.2</td><td>Web framework</td></tr>
+  <tr><td>ORM</td><td>Prisma 6.19</td><td>Database access &amp; migrations</td></tr>
+  <tr><td>Database</td><td>PostgreSQL 17</td><td>Primary data store</td></tr>
+  <tr><td>Cache</td><td>Redis (ioredis 6)</td><td>Caching layer</td></tr>
+  <tr><td>Validation</td><td>Zod 4</td><td>Request validation</td></tr>
+  <tr><td>Auth</td><td>jsonwebtoken 9 + bcrypt 6</td><td>JWT + password hashing</td></tr>
+  <tr><td>Email</td><td>Postmark / Resend</td><td>Email verification &amp; OTP</td></tr>
+  <tr><td>SMS</td><td>Africa's Talking</td><td>Phone OTP via SMS</td></tr>
+  <tr><td>File Upload</td><td>Multer 2</td><td>File upload handling</td></tr>
+  <tr><td>Rate Limit</td><td>express-rate-limit 8</td><td>API rate limiting</td></tr>
+  <tr><td>API Docs</td><td>Swagger (swagger-jsdoc + swagger-ui)</td><td>OpenAPI documentation</td></tr>
+  <tr><td>Container</td><td>Docker (multi-stage)</td><td>Production deployment</td></tr>
+  <tr><td>CI/CD</td><td>GitHub Actions</td><td>Automated build &amp; deploy</td></tr>
+</table>
+</section>
+
+<!-- ─── PROJECT STATS ─────────────────────────────────────────────────── -->
+<section id="project-stats">
+<h2>Project Statistics</h2>
+<div class="card-grid">
+  <div class="stat-card"><div class="number">17</div><div class="label">Feature Modules</div></div>
+  <div class="stat-card"><div class="number">6</div><div class="label">Middleware</div></div>
+  <div class="stat-card"><div class="number">7</div><div class="label">Error Classes</div></div>
+  <div class="stat-card"><div class="number">20+</div><div class="label">Zod Schemas</div></div>
+</div>
+</section>
+
+<!-- ─── DIRECTORY STRUCTURE ───────────────────────────────────────────── -->
+<section id="directory-structure">
+<h2>Directory Structure</h2>
+<pre>
+eacrms-backend/
+├── .github/workflows/
+│   ├── ci.yml                  # CI: lint, typecheck, test
+│   └── deploy.yml              # CD: build → push → SSH deploy
+├── prisma/
+│   ├── schema.prisma           # Database schema
+│   ├── seed.ts                 # Seed: roles, permissions, admin, news
+│   └── migrations/             # Auto-generated migrations
+├── scripts/
+│   ├── printSwaggerPaths.js    # Swagger endpoint listing utility
+│   └── printSwaggerPaths.cjs
+├── src/
+│   ├── app.ts                  # Express app setup (middleware, routes, error handler)
+│   ├── server.ts               # HTTP server entry point
+│   ├── routes/
+│   │   └── index.ts            # Central route aggregator
+│   ├── modules/
+│   │   ├── auth/               # Authentication (register, login, refresh, logout)
+│   │   ├── verification/       # Email &amp; phone OTP verification
+│   │   ├── users/              # User management (admin)
+│   │   ├── athletes/           # Athlete registration, profiles, CRUD
+│   │   ├── clubs/              # Club registration, verification
+│   │   ├── coaches/            # Coach registration &amp; management
+│   │   ├── events/             # Events, QR check-in system
+│   │   ├── fayda/              # Fayda National ID verification
+│   │   ├── payments/           # Payment processing (mock TeleBirr)
+│   │   ├── policies/           # Federation policy engine
+│   │   ├── permissions/        # Permission management
+│   │   ├── roles/              # Role management
+│   │   ├── authorizations/     # Authorization service (RBAC)
+│   │   ├── audit/              # Audit logging
+│   │   ├── news/               # News articles
+│   │   ├── meta/               # Registration form options
+│   │   └── health/             # Health check endpoint
+│   ├── middleware/
+│   │   ├── auth.middleware.ts           # JWT Bearer authentication
+│   │   ├── authorize.middleware.ts      # Permission-based authorization
+│   │   ├── validate.middleware.ts       # Zod schema validation
+│   │   ├── rateLimit.middleware.ts      # Rate limiting (public/write/upload/search)
+│   │   ├── policy-enforcement.middleware.ts  # Federation policy enforcement
+│   │   └── asyncHandler.ts             # Async error wrapper
+│   ├── errors/
+│   │   ├── AppError.ts         # Base error class
+│   │   ├── BadRequestError.ts
+│   │   ├── ConflictError.ts
+│   │   ├── ForbiddenError.ts
+│   │   ├── NotFoundError.ts
+│   │   └── UnauthorizedError.ts
+│   ├── lib/
+│   │   ├── prisma.ts           # Prisma client singleton
+│   │   ├── redis.ts            # Redis client + cache helpers
+│   │   ├── postmark.ts         # Postmark email client
+│   │   └── uploads/            # File upload destination
+│   ├── utils/
+│   │   ├── jwt.ts              # JWT generation &amp; verification
+│   │   ├── phone.ts            # Ethiopian phone normalization
+│   │   └── auth-contract.ts    # Auth API contracts
+│   ├── constants/
+│   │   └── audit-actions.ts    # Audit action constants
+│   ├── types/
+│   │   └── express.d.ts        # Express type augmentation (req.user)
+│   ├── common/                 # Shared utilities
+│   └── docs/
+│       ├── swagger.ts          # Swagger spec generator
+│       ├── athletes.yaml       # OpenAPI spec fragments
+│       ├── auth.yaml
+│       ├── clubs.yaml
+│       ├── coaches.yaml
+│       ├── fayda.yaml
+│       └── health.yaml
+├── tests/
+│   └── auth-contract.test.ts   # Auth contract tests
+├── Dockerfile                  # Multi-stage Docker build
+├── docker-compose.yml          # Local dev compose
+├── docker-compose.prod.yml     # Production compose
+├── .env.example                # Environment variable template
+├── tsconfig.json               # TypeScript config
+├── package.json
+├── DEPLOYMENT.md               # Deployment guide
+└── README.md
+</pre>
+</section>
+
+<hr>
+
+<!-- ─── ARCHITECTURE ──────────────────────────────────────────────────── -->
+<section id="architecture">
+<h2>Architecture Overview</h2>
+<p>
+  The project follows a <strong>modular monolith</strong> architecture with clear separation
+  of concerns within each module. Every feature module follows a consistent layered pattern:
+</p>
+
+<div class="card">
+  <h3>Module Layers</h3>
+  <table>
+    <tr><th>Layer</th><th>File Pattern</th><th>Responsibility</th></tr>
+    <tr><td><strong>Routes</strong></td><td><code>*.routes.ts</code></td><td>HTTP method mapping, middleware composition</td></tr>
+    <tr><td><strong>Controller</strong></td><td><code>*.controller.ts</code></td><td>Request parsing, response formatting, orchestration</td></tr>
+    <tr><td><strong>Service</strong></td><td><code>*.service.ts</code></td><td>Business logic, validation rules, transaction orchestration</td></tr>
+    <tr><td><strong>Repository</strong></td><td><code>*.repository.ts</code></td><td>Prisma queries, data access abstraction</td></tr>
+    <tr><td><strong>Validation</strong></td><td><code>*.validation.ts</code></td><td>Zod schemas for request validation</td></tr>
+    <tr><td><strong>Types</strong></td><td><code>*.types.ts</code> / <code>dto/</code></td><td>TypeScript interfaces, DTOs</td></tr>
+  </table>
+</div>
+
+<div class="note">
+  <strong>Request flow:</strong> Client → Route → Auth middleware → Authorization middleware →
+  Validate middleware → Policy enforcement → Controller → Service → Repository → Prisma → PostgreSQL
+</div>
+</section>
+
+<!-- ─── ENTRY POINTS ──────────────────────────────────────────────────── -->
+<section id="entry-points">
+<h2>Entry Points</h2>
+
+<h3><code>src/server.ts</code> — HTTP Server</h3>
+<pre>
+// Loads dotenv, starts Express on 0.0.0.0:PORT (default 5000)
+const PORT = parseInt(process.env.PORT ?? "5000", 10);
+app.listen(PORT, "0.0.0.0", () =&gt; { ... });
+</pre>
+
+<h3><code>src/app.ts</code> — Express Application</h3>
+<pre>
+// 1. JSON body parser
+// 2. Static file serving (/uploads → /uploads directory)
+// 3. API routes (/api/v1/*)
+// 4. Swagger UI (/api-docs)
+// 5. OpenAPI JSON (/api-docs.json)
+// 6. Root health JSON (GET /)
+// 7. Global error handler (AppError → structured JSON)
+</pre>
+
+<h3><code>src/routes/index.ts</code> — Central Router</h3>
+<p>Aggregates all module routers under <code>/api/v1</code>:</p>
+<pre>
+/api/v1/health          → Health check
+/api/v1/auth            → Authentication
+/api/v1/auth/verify     → Email &amp; phone verification
+/api/v1/athletes        → Athletes
+/api/v1/athletes/profile → Athlete profile &amp; uploads
+/api/v1/clubs           → Clubs
+/api/v1/coaches         → Coaches
+/api/v1/fayda/*         → Fayda ID verification
+/api/v1/users           → User management
+/api/v1/events          → Events &amp; check-in
+/api/v1/policies        → Federation policies
+/api/v1/payments        → Payments
+/api/v1/meta/*          → Registration options
+/api/v1/news            → News articles
+/api/v1/news/upload     → News image uploads
+</pre>
+</section>
+
+<!-- ─── MODULE PATTERN ────────────────────────────────────────────────── -->
+<section id="module-pattern">
+<h2>Module Pattern Example</h2>
+<p>Each module (e.g., athletes) consists of these files:</p>
+<table>
+  <tr><th>File</th><th>Exports</th></tr>
+  <tr><td><code>athlete.route.ts</code></td><td>Express Router with all athlete endpoints</td></tr>
+  <tr><td><code>athlete.controller.ts</code></td><td><code>athleteController</code> object with handler methods</td></tr>
+  <tr><td><code>athlete.service.ts</code></td><td><code>athleteService</code> with business logic</td></tr>
+  <tr><td><code>athlete.repository.ts</code></td><td><code>athleteRepository</code> with Prisma queries</td></tr>
+  <tr><td><code>athlete.validation.ts</code></td><td>Zod schemas: <code>createAthleteSchema</code>, <code>updateProfileSchema</code>, etc.</td></tr>
+  <tr><td><code>dto/</code></td><td>Data Transfer Objects for complex input shapes</td></tr>
+</table>
+</section>
+
+<hr>
+
+<!-- ─── DATABASE ──────────────────────────────────────────────────────── -->
+<section id="database">
+<h2>Database Schema</h2>
+<p>
+  PostgreSQL 17 via Prisma ORM. The schema defines <strong>30+ models</strong> covering
+  users, athletes, coaches, clubs, events, payments, policies, news, and more.
+</p>
+</section>
+
+<!-- ─── ENUMS ─────────────────────────────────────────────────────────── -->
+<section id="enums">
+<h2>Enums</h2>
+<table>
+  <tr><th>Enum</th><th>Values</th><th>Used By</th></tr>
+  <tr><td><code>AthleteStatus</code></td><td>DRAFT, PENDING, FAYDA_VERIFIED, APPROVED, ACTIVE, SUSPENDED, REJECTED</td><td>Athlete, Coach</td></tr>
+  <tr><td><code>UserStatus</code></td><td>ACTIVE, PENDING, SUSPENDED, DELETED</td><td>User</td></tr>
+  <tr><td><code>EventStatus</code></td><td>DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED, CANCELLED</td><td>Event</td></tr>
+  <tr><td><code>ClubVerificationStatus</code></td><td>PENDING, VERIFIED, REJECTED, SUSPENDED</td><td>Club</td></tr>
+  <tr><td><code>Gender</code></td><td>MALE, FEMALE</td><td>Athlete</td></tr>
+  <tr><td><code>BloodType</code></td><td>A_POSITIVE, A_NEGATIVE, B_POSITIVE, B_NEGATIVE, AB_POSITIVE, AB_NEGATIVE, O_POSITIVE, O_NEGATIVE</td><td>Athlete</td></tr>
+  <tr><td><code>DominantHand</code></td><td>LEFT, RIGHT, AMBIDEXTROUS</td><td>Athlete</td></tr>
+  <tr><td><code>DominantFoot</code></td><td>LEFT, RIGHT, BOTH</td><td>Athlete</td></tr>
+  <tr><td><code>RegistrationSource</code></td><td>SELF, CLUB_ADMIN</td><td>Athlete, Coach</td></tr>
+  <tr><td><code>PolicyScope</code></td><td>CLUB, EVENT, ATHLETE_PARTICIPATION</td><td>Policy</td></tr>
+  <tr><td><code>PolicyStatus</code></td><td>ACTIVE, INACTIVE</td><td>Policy</td></tr>
+  <tr><td><code>PaymentProvider</code></td><td>MOCK_TELEBIRR</td><td>Payment</td></tr>
+  <tr><td><code>PaymentType</code></td><td>EVENT_REGISTRATION, EVENT_FEE, CLUB_FEE, OTHER</td><td>Payment</td></tr>
+  <tr><td><code>PaymentStatus</code></td><td>PENDING, PAID, FAILED, EXPIRED, REFUNDED</td><td>Payment</td></tr>
+  <tr><td><code>EventRegistrationStatus</code></td><td>PENDING_PAYMENT, CONFIRMED, CANCELLED</td><td>EventRegistration</td></tr>
+  <tr><td><code>VerificationType</code></td><td>EMAIL, PHONE</td><td>UserVerification</td></tr>
+  <tr><td><code>VerificationStatus</code></td><td>PENDING, VERIFIED, EXPIRED</td><td>UserVerification</td></tr>
+  <tr><td><code>FaydaVerificationStatus</code></td><td>PENDING, OTP_SENT, CONFIRMED, FAILED, EXPIRED</td><td>FaydaVerification</td></tr>
+  <tr><td><code>NewsCategory</code></td><td>CHAMPIONSHIP, TRAINING, ANNOUNCEMENT, COMMUNITY, RECOGNITION, GENERAL</td><td>News</td></tr>
+  <tr><td><code>PersonalBestScope</code></td><td>ALL_TIME, SEASON</td><td>PersonalBest</td></tr>
+  <tr><td><code>EventAttendeeType</code></td><td>ATHLETE, CLUB</td><td>EventAttendee</td></tr>
+  <tr><td><code>PolicyAuditAction</code></td><td>CREATED, UPDATED, ASSIGNED, UNASSIGNED</td><td>PolicyAuditLog</td></tr>
+</table>
+</section>
+
+<!-- ─── MODELS ────────────────────────────────────────────────────────── -->
+<section id="models">
+<h2>Core Models</h2>
+
+<h3>User</h3>
+<div class="card">
+<table>
+  <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+  <tr><td>id</td><td>String (cuid)</td><td>Primary key</td></tr>
+  <tr><td>email</td><td>String? (unique)</td><td>Optional email</td></tr>
+  <tr><td>password</td><td>String</td><td>Bcrypt hashed</td></tr>
+  <tr><td>firstName / lastName</td><td>String</td><td></td></tr>
+  <tr><td>phoneNumber</td><td>String? (unique)</td><td>E.164 format</td></tr>
+  <tr><td>status</td><td>UserStatus</td><td>Default: PENDING</td></tr>
+  <tr><td>emailVerified / phoneVerified</td><td>Boolean</td><td>Default: false</td></tr>
+</table>
+<p style="margin-top:8px"><strong>Relations:</strong> roles, athlete, coaches, verifiedClubs, verifications, eventsCreated, eventsApproved, policiesCreated, payments, eventRegistrations</p>
+</div>
+
+<h3>Athlete</h3>
+<div class="card">
+<table>
+  <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+  <tr><td>id</td><td>String (cuid)</td><td>Primary key</td></tr>
+  <tr><td>userId</td><td>String (unique)</td><td>FK → User</td></tr>
+  <tr><td>sportId</td><td>String?</td><td>FK → Sport</td></tr>
+  <tr><td>clubId / clubName</td><td>String?</td><td>FK → Club</td></tr>
+  <tr><td>dateOfBirth</td><td>DateTime</td><td></td></tr>
+  <tr><td>gender</td><td>Gender</td><td>MALE / FEMALE</td></tr>
+  <tr><td>nationality</td><td>String</td><td></td></tr>
+  <tr><td>status</td><td>AthleteStatus</td><td>DRAFT → PENDING → FAYDA_VERIFIED → APPROVED → ACTIVE</td></tr>
+  <tr><td>faydaVerified</td><td>Boolean</td><td></td></tr>
+  <tr><td>faydaNin</td><td>String? (unique)</td><td>Fayda National ID Number</td></tr>
+  <tr><td>height / weight</td><td>Int?</td><td>cm / kg</td></tr>
+  <tr><td>dominantHand / dominantFoot</td><td>Enum?</td><td></td></tr>
+  <tr><td>bloodType</td><td>BloodType?</td><td></td></tr>
+  <tr><td>position / jerseyNumber</td><td>String? / Int?</td><td></td></tr>
+  <tr><td>registrationSource</td><td>RegistrationSource</td><td>SELF / CLUB_ADMIN</td></tr>
+</table>
+<p style="margin-top:8px"><strong>Relations:</strong> user, sport, club, faydaVerifications, eventAttendees, eventRegistrations, payments, athleteSports, personalBests, trainingLogs, weightLogs</p>
+</div>
+
+<h3>Club</h3>
+<div class="card">
+<table>
+  <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+  <tr><td>id</td><td>String (cuid)</td><td></td></tr>
+  <tr><td>name</td><td>String</td><td></td></tr>
+  <tr><td>shortName / email / phone</td><td>String?</td><td></td></tr>
+  <tr><td>address / city / region</td><td>String?</td><td></td></tr>
+  <tr><td>registrationNumber / licenseNumber</td><td>String? (unique)</td><td></td></tr>
+  <tr><td>verificationStatus</td><td>ClubVerificationStatus</td><td>PENDING → VERIFIED / REJECTED / SUSPENDED</td></tr>
+  <tr><td>verifiedBy / verifiedAt</td><td>String? / DateTime?</td><td>FK → User</td></tr>
+</table>
+</div>
+
+<h3>Coach</h3>
+<div class="card">
+<p>Similar to Athlete — linked to a User, optional Sport and Club, with license number, specialization, years of experience, and Fayda verification.</p>
+</div>
+
+<h3>Event</h3>
+<div class="card">
+<table>
+  <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+  <tr><td>id</td><td>String (cuid)</td><td></td></tr>
+  <tr><td>title / description</td><td>String / String?</td><td></td></tr>
+  <tr><td>category</td><td>String</td><td></td></tr>
+  <tr><td>rules</td><td>String</td><td></td></tr>
+  <tr><td>schedule</td><td>Json</td><td></td></tr>
+  <tr><td>status</td><td>EventStatus</td><td>DRAFT → PENDING_APPROVAL → PUBLISHED</td></tr>
+  <tr><td>disciplines</td><td>Json?</td><td></td></tr>
+  <tr><td>bannerUrl</td><td>String?</td><td></td></tr>
+  <tr><td>registrationDeadline</td><td>DateTime?</td><td></td></tr>
+  <tr><td>createdById / approvedById</td><td>String / String?</td><td>FK → User</td></tr>
+</table>
+<p style="margin-top:8px"><strong>Relations:</strong> statusHistory, policyAssignments, attendees (QR check-in), registrations, payments</p>
+</div>
+
+<h3>Payment</h3>
+<div class="card">
+<table>
+  <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+  <tr><td>reference</td><td>String (unique)</td><td>Payment reference ID</td></tr>
+  <tr><td>provider</td><td>PaymentProvider</td><td>MOCK_TELEBIRR</td></tr>
+  <tr><td>type</td><td>PaymentType</td><td>EVENT_REGISTRATION, etc.</td></tr>
+  <tr><td>status</td><td>PaymentStatus</td><td>PENDING → PAID / FAILED / EXPIRED / REFUNDED</td></tr>
+  <tr><td>amount</td><td>Decimal(12,2)</td><td></td></tr>
+  <tr><td>currency</td><td>String</td><td>Default: ETB</td></tr>
+  <tr><td>externalTransactionId</td><td>String? (unique)</td><td></td></tr>
+  <tr><td>providerPayload</td><td>Json?</td><td></td></tr>
+</table>
+</div>
+
+<h3>Policy</h3>
+<div class="card">
+<p>Federation-wide policies with configurable rules (JSON). Scopes: CLUB, EVENT, ATHLETE_PARTICIPATION. Policies can block actions or require extra permissions. Full audit trail via PolicyAuditLog.</p>
+</div>
+
+<h3>News</h3>
+<div class="card">
+<p>News articles with title, short description, content, category (CHAMPIONSHIP, TRAINING, ANNOUNCEMENT, COMMUNITY, RECOGNITION, GENERAL), featured flag, and image support.</p>
+</div>
+</section>
+
+<!-- ─── RELATIONS ─────────────────────────────────────────────────────── -->
+<section id="relations">
+<h2>Key Relationships</h2>
+<pre>
+User ──1:1── Athlete         (userId unique)
+User ──1:1── Coach           (userId unique)
+User ──M:N── Role            (via UserRole)
+Role ──M:N── Permission      (via RolePermission)
+User ──1:N── AuditLog
+User ──1:N── Verification    (email/phone)
+User ──1:N── Event           (createdBy / approvedBy)
+User ──1:N── Policy          (createdBy / updatedBy)
+User ──1:N── Payment
+User ──1:N── EventRegistration
+
+Athlete ──M:N── Sport        (via AthleteSport)
+Athlete ──M:1── Club
+Athlete ──1:N── PersonalBest
+Athlete ──1:N── TrainingLog
+Athlete ──1:N── WeightLog
+Athlete ──1:N── FaydaVerification
+Athlete ──M:N── Event        (via EventAttendee)
+
+Club ──1:N── Athlete
+Club ──1:N── Coach
+Club ──M:N── Policy          (via PolicyAssignment)
+Club ──M:N── Event           (via EventAttendee)
+
+Event ──1:N── EventAttendee   (QR tokens + check-in)
+Event ──1:N── EventRegistration
+Event ──1:N── EventStatusHistory
+Event ──M:N── Policy          (via PolicyAssignment)
+Event ──1:N── Payment
+
+Payment ──1:N── PaymentStatusHistory
+</pre>
+</section>
+
+<!-- ─── SEEDING ───────────────────────────────────────────────────────── -->
+<section id="seeding">
+<h2>Database Seeding</h2>
+<p><code>prisma/seed.ts</code> runs automatically on first deploy (via Dockerfile CMD):</p>
+<ol>
+  <li><strong>10 Roles:</strong> SUPER_ADMIN, FEDERATION_ADMIN, REGIONAL_ADMIN, CLUB_ADMIN, COACH, ATHLETE, REFEREE, MEDICAL_STAFF, FINANCE_OFFICER, EVENT_MANAGER</li>
+  <li><strong>40+ Permissions:</strong> user:*, role:*, club:*, athlete:*, coach:*, competition:*, event:*, policy:*, payment:*, report:*, audit:*, fayda:*, news:*</li>
+  <li><strong>Role-Permission mappings:</strong> SUPER_ADMIN gets all; others get scoped permissions</li>
+  <li><strong>Default Super Admin:</strong> admin@eacrms.local / ChangeMe123!</li>
+  <li><strong>6 Seed News Articles:</strong> Sample content for the news module</li>
+</ol>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- API REFERENCE                                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- ─── AUTH API ───────────────────────────────────────────────────────── -->
+<section id="auth-api">
+<h2>Authentication API</h2>
+<p>Base path: <code>/api/v1/auth</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/register</code></td>
+    <td><span class="badge badge-green">Public</span></td>
+    <td>Register a new user account</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/login</code></td>
+    <td><span class="badge badge-green">Public</span></td>
+    <td>Login with email + password, returns access &amp; refresh tokens</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/refresh</code></td>
+    <td><span class="badge badge-green">Public</span></td>
+    <td>Refresh access token using refresh token</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/logout</code></td>
+    <td><span class="badge badge-green">Public</span></td>
+    <td>Invalidate refresh token</td>
+  </tr>
+  <tr>
+    <td><span class="method method-get">GET</span></td>
+    <td><code>/me</code></td>
+    <td><span class="badge badge-blue">Auth</span></td>
+    <td>Get current user profile</td>
+  </tr>
+</table>
+</section>
+
+<!-- ─── VERIFICATION API ──────────────────────────────────────────────── -->
+<section id="verification-api">
+<h2>Verification API</h2>
+<p>Base path: <code>/api/v1/auth/verify</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/email</code></td>
+    <td><span class="badge badge-green">Public</span></td>
+    <td>Verify email with OTP code</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/phone/public</code></td>
+    <td><span class="badge badge-green">Public</span></td>
+    <td>Verify phone by number (post-registration)</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/phone/request</code></td>
+    <td><span class="badge badge-blue">Auth</span></td>
+    <td>Request phone OTP (sends via Africa's Talking)</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/phone</code></td>
+    <td><span class="badge badge-blue">Auth</span></td>
+    <td>Verify phone with OTP code</td>
+  </tr>
+  <tr>
+    <td><span class="method method-post">POST</span></td>
+    <td><code>/resend</code></td>
+    <td><span class="badge badge-blue">Auth</span></td>
+    <td>Resend verification (email or phone)</td>
+  </tr>
+  <tr>
+    <td><span class="method method-get">GET</span></td>
+    <td><code>/status</code></td>
+    <td><span class="badge badge-blue">Auth</span></td>
+    <td>Check verification status for current user</td>
+  </tr>
+</table>
+</section>
+
+<!-- ─── USERS API ─────────────────────────────────────────────────────── -->
+<section id="users-api">
+<h2>Users API</h2>
+<p>Base path: <code>/api/v1/users</code> — Admin-only endpoints</p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Permission</th><th>Description</th></tr>
+  <tr>
+    <td><span class="method method-get">GET</span></td>
+    <td><code>/</code></td>
+    <td><code>user:view</code></td>
+    <td>List all users</td>
+  </tr>
+  <tr>
+    <td><span class="method method-patch">PATCH</span></td>
+    <td><code>/:id/activate</code></td>
+    <td><code>user:update</code></td>
+    <td>Activate a user</td>
+  </tr>
+  <tr>
+    <td><span class="method method-patch">PATCH</span></td>
+    <td><code>/:id/deactivate</code></td>
+    <td><code>user:update</code></td>
+    <td>Deactivate a user</td>
+  </tr>
+  <tr>
+    <td><span class="method method-delete">DELETE</span></td>
+    <td><code>/:id</code></td>
+    <td><code>user:delete</code></td>
+    <td>Delete a user</td>
+  </tr>
+</table>
+</section>
+
+<!-- ─── ATHLETES API ──────────────────────────────────────────────────── -->
+<section id="athletes-api">
+<h2>Athletes API</h2>
+<p>Base path: <code>/api/v1/athletes</code></p>
+
+<h3>Public Routes</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/public</code></td><td>Public fan-facing athlete list</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/public/:id</code></td><td>Public athlete detail by ID</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/register</code></td><td>Self-registration (athlete signup)</td></tr>
+</table>
+
+<h3>Authenticated Routes</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Permission</th><th>Description</th></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/register/by-admin</code></td><td><code>athlete:create</code></td><td>Club admin registers athlete</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/profile</code></td><td>—</td><td>Get own athlete profile</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/profile</code></td><td>—</td><td>Update own profile</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/profile/fayda</code></td><td>—</td><td>Get Fayda verification for profile</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/profile/personal-bests</code></td><td>—</td><td>List personal bests</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/profile/personal-bests</code></td><td>—</td><td>Add personal best</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/profile/training-logs</code></td><td>—</td><td>List training logs</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/profile/training-logs</code></td><td>—</td><td>Add training log</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/profile/weight-logs</code></td><td>—</td><td>List weight logs</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/profile/weight-logs</code></td><td>—</td><td>Add weight log</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/applications</code></td><td>—</td><td>View own applications</td></tr>
+</table>
+
+<h3>Admin Routes</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Permission</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td><code>athlete:view</code></td><td>List all athletes</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/search</code></td><td><code>athlete:view</code></td><td>Search athletes</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/status/:status</code></td><td><code>athlete:view</code></td><td>Filter by status</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/approve</code></td><td><code>athlete:update</code></td><td>Approve athlete</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/reject</code></td><td><code>athlete:update</code></td><td>Reject athlete</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/activate</code></td><td><code>athlete:update</code></td><td>Activate athlete</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/suspend</code></td><td><code>athlete:update</code></td><td>Suspend athlete</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id</code></td><td><code>athlete:view</code></td><td>Get athlete by ID</td></tr>
+  <tr><td><span class="method method-delete">DELETE</span></td><td><code>/:id</code></td><td><code>athlete:delete</code></td><td>Delete athlete</td></tr>
+</table>
+</section>
+
+<!-- ─── CLUBS API ─────────────────────────────────────────────────────── -->
+<section id="clubs-api">
+<h2>Clubs API</h2>
+<p>Base path: <code>/api/v1/clubs</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/verified</code></td><td><span class="badge badge-green">Public</span></td><td>List verified clubs</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/public/:id</code></td><td><span class="badge badge-green">Public</span></td><td>Public club detail</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/register</code></td><td><span class="badge badge-green">Public</span></td><td>Register a new club</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td><span class="badge badge-blue">Auth</span></td><td>List all clubs</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/pending</code></td><td><code>club:approve</code></td><td>List pending clubs</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id</code></td><td><span class="badge badge-blue">Auth</span></td><td>Get club by ID</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/approve</code></td><td><code>club:approve</code></td><td>Approve club</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/reject</code></td><td><code>club:approve</code></td><td>Reject club</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/suspend</code></td><td><code>club:approve</code></td><td>Suspend club</td></tr>
+  <tr><td><span class="method method-delete">DELETE</span></td><td><code>/:id</code></td><td><code>club:delete</code></td><td>Delete club</td></tr>
+</table>
+</section>
+
+<!-- ─── COACHES API ───────────────────────────────────────────────────── -->
+<section id="coaches-api">
+<h2>Coaches API</h2>
+<p>Base path: <code>/api/v1/coaches</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/register</code></td><td><span class="badge badge-green">Public</span></td><td>Self-registration</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/register/by-admin</code></td><td><code>coach:create</code></td><td>Club admin registers coach</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/profile</code></td><td><span class="badge badge-blue">Auth</span></td><td>Get own profile</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td><code>coach:view</code></td><td>List all coaches</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/status/:status</code></td><td><code>coach:view</code></td><td>Filter by status</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/club/:clubId</code></td><td><code>coach:view</code></td><td>List coaches by club</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/approve</code></td><td><code>coach:update</code></td><td>Approve coach</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/reject</code></td><td><code>coach:update</code></td><td>Reject coach</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/activate</code></td><td><code>coach:update</code></td><td>Activate coach</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/suspend</code></td><td><code>coach:update</code></td><td>Suspend coach</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id</code></td><td><code>coach:view</code></td><td>Get coach by ID</td></tr>
+  <tr><td><span class="method method-delete">DELETE</span></td><td><code>/:id</code></td><td><code>coach:delete</code></td><td>Delete coach</td></tr>
+</table>
+</section>
+
+<!-- ─── EVENTS API ────────────────────────────────────────────────────── -->
+<section id="events-api">
+<h2>Events API</h2>
+<p>Base path: <code>/api/v1/events</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/published</code></td><td><span class="badge badge-green">Public</span></td><td>List published events</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id/detail</code></td><td><span class="badge badge-green">Public</span></td><td>Event detail (public)</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td><code>event:view</code></td><td>List all events (admin)</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/</code></td><td><code>event:create</code></td><td>Create event</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id</code></td><td><code>event:view</code></td><td>Get event by ID</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/submit</code></td><td><code>event:create</code></td><td>Submit for approval (policy-enforced)</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/approve</code></td><td><code>event:approve</code></td><td>Approve event</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/reject</code></td><td><code>event:approve</code></td><td>Reject event</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id/status</code></td><td><code>event:override</code></td><td>Override event status (super admin)</td></tr>
+</table>
+
+<h3>Event Check-in (QR)</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Permission</th><th>Description</th></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/:eventId/qr-tokens</code></td><td><code>event:checkin</code></td><td>Generate QR token for attendee</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/:eventId/check-ins/scan</code></td><td><code>event:checkin</code></td><td>Scan QR token for check-in</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:eventId/check-ins</code></td><td><code>event:view</code></td><td>List check-ins for event</td></tr>
+</table>
+
+<h3>Event Registration &amp; Payments</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Permission</th><th>Description</th></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/:eventId/registrations</code></td><td><code>event:register</code></td><td>Register athlete for event (creates payment)</td></tr>
+</table>
+</section>
+
+<!-- ─── FAYDA API ─────────────────────────────────────────────────────── -->
+<section id="fayda-api">
+<h2>Fayda National ID Verification API</h2>
+<p>Base path: <code>/api/v1</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/fayda/initiate</code></td><td><span class="badge badge-green">Public</span></td><td>Initiate stateless verification (pre-registration)</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/fayda/verify/confirm</code></td><td><span class="badge badge-green">Public</span></td><td>Confirm OTP for stateless flow</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/fayda/verify/:verificationId</code></td><td><span class="badge badge-green">Public</span></td><td>Get verification status &amp; data</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/athletes/:athleteId/fayda/initiate</code></td><td><code>fayda:verify</code></td><td>Initiate for existing athlete</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/athletes/:athleteId/fayda/status</code></td><td><code>fayda:verify</code></td><td>Get athlete's Fayda status</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/coaches/:coachId/fayda/initiate</code></td><td><code>fayda:verify</code></td><td>Initiate for existing coach</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/coaches/:coachId/fayda/status</code></td><td><code>fayda:verify</code></td><td>Get coach's Fayda status</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/fayda/verify/:verificationId/confirm</code></td><td><span class="badge badge-blue">Auth</span></td><td>Confirm OTP (athlete/coach flow)</td></tr>
+</table>
+
+<div class="note">
+  <strong>Fayda flow:</strong> Initiate (send NIN) → OTP sent → Confirm OTP → Verification status updated.
+  Supports both stateless (pre-registration) and authenticated flows.
+  Currently uses a mock provider; swap <code>fayda.mock.ts</code> for production API.
+</div>
+</section>
+
+<!-- ─── PAYMENTS API ──────────────────────────────────────────────────── -->
+<section id="payments-api">
+<h2>Payments API</h2>
+<p>Base path: <code>/api/v1/payments</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/mock/webhook</code></td><td><span class="badge badge-green">Public</span></td><td>Mock payment webhook (TeleBirr simulation)</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/history</code></td><td><span class="badge badge-blue">Auth</span></td><td>Payment history for current user</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:paymentId/status</code></td><td><span class="badge badge-blue">Auth</span></td><td>Check payment status</td></tr>
+</table>
+</section>
+
+<!-- ─── POLICIES API ──────────────────────────────────────────────────── -->
+<section id="policies-api">
+<h2>Federation Policies API</h2>
+<p>Base path: <code>/api/v1/policies</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Permission</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/relevant</code></td><td><span class="badge badge-blue">Auth</span></td><td>Policies relevant to current user's clubs/events</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td><code>policy:view</code></td><td>List all policies</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/</code></td><td><code>policy:create</code></td><td>Create policy</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id</code></td><td><code>policy:view</code></td><td>Get policy by ID</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/:id</code></td><td><code>policy:update</code></td><td>Update policy</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/:id/assignments</code></td><td><code>policy:update</code></td><td>Assign policy to club or event</td></tr>
+  <tr><td><span class="method method-delete">DELETE</span></td><td><code>/:id/assignments/:assignmentId</code></td><td><code>policy:update</code></td><td>Unassign policy</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id/audit</code></td><td><code>policy:view</code></td><td>View audit log for policy</td></tr>
+</table>
+</section>
+
+<!-- ─── NEWS API ──────────────────────────────────────────────────────── -->
+<section id="news-api">
+<h2>News API</h2>
+<p>Base path: <code>/api/v1/news</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td><span class="badge badge-green">Public</span></td><td>List published news</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/:id</code></td><td><span class="badge badge-green">Public</span></td><td>Get news article by ID</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/admin</code></td><td><code>news:view</code></td><td>List all news (admin)</td></tr>
+  <tr><td><span class="method method-post">POST</span></td><td><code>/admin</code></td><td><code>news:create</code></td><td>Create news article</td></tr>
+  <tr><td><span class="method method-patch">PATCH</span></td><td><code>/admin/:id</code></td><td><code>news:update</code></td><td>Update news article</td></tr>
+  <tr><td><span class="method method-delete">DELETE</span></td><td><code>/admin/:id</code></td><td><code>news:delete</code></td><td>Delete news article</td></tr>
+</table>
+</section>
+
+<!-- ─── META API ──────────────────────────────────────────────────────── -->
+<section id="meta-api">
+<h2>Meta API</h2>
+<p>Base path: <code>/api/v1/meta</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/registration-options</code></td><td>Public — returns disciplines, clubs, and regions for registration forms</td></tr>
+</table>
+</section>
+
+<!-- ─── HEALTH API ────────────────────────────────────────────────────── -->
+<section id="health-api">
+<h2>Health API</h2>
+<p>Base path: <code>/api/v1/health</code></p>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td>Returns <code>{"status": "OK"}</code></td></tr>
+</table>
+
+<p>Additional health endpoints:</p>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/</code></td><td>Root — returns <code>{"name":"EACRMS Backend","version":"1.0.0","status":"running"}</code></td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/api-docs</code></td><td>Swagger UI</td></tr>
+  <tr><td><span class="method method-get">GET</span></td><td><code>/api-docs.json</code></td><td>OpenAPI JSON spec</td></tr>
+</table>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECURITY                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<section id="rbac">
+<h2>RBAC &amp; Permissions</h2>
+<p>
+  The system uses a full <strong>Role-Based Access Control</strong> system with 10 roles and 40+ granular permissions.
+  Permissions follow the format <code>resource:action</code> (e.g., <code>athlete:create</code>).
+</p>
+
+<h3>Role → Permission Matrix</h3>
+<table>
+  <tr>
+    <th>Role</th>
+    <th>Key Permissions</th>
+  </tr>
+  <tr>
+    <td><span class="badge badge-red">SUPER_ADMIN</span></td>
+    <td><strong>All permissions</strong></td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">FEDERATION_ADMIN</span></td>
+    <td>club:*, athlete:create/update, coach:create/update, event:approve/checkin/view, policy:*, payment:approve, audit:view, fayda:verify, news:*</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">REGIONAL_ADMIN</span></td>
+    <td>club:create/update, athlete:create, coach:create, competition:view, report:view</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">CLUB_ADMIN</span></td>
+    <td>athlete:create/update, coach:create/update, competition:view</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-purple">EVENT_MANAGER</span></td>
+    <td>event:create/view/checkin/register</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">COACH</span></td>
+    <td>athlete:view/update, competition:view</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">ATHLETE</span></td>
+    <td>competition:view, event:register</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">FINANCE_OFFICER</span></td>
+    <td>payment:create/approve/view, report:view</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">MEDICAL_STAFF</span></td>
+    <td>athlete:view, fayda:verify</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">REFEREE</span></td>
+    <td>competition:view, report:view</td>
+  </tr>
+</table>
+
+<h3>Full Permission List</h3>
+<div class="card">
+<table>
+  <tr><th>Permission</th><th>Description</th></tr>
+  <tr><td><code>user:create / view / update / delete</code></td><td>User management</td></tr>
+  <tr><td><code>role:create / update / delete</code></td><td>Role management</td></tr>
+  <tr><td><code>club:create / update / approve / delete</code></td><td>Club management</td></tr>
+  <tr><td><code>athlete:create / view / update / delete</code></td><td>Athlete management</td></tr>
+  <tr><td><code>coach:create / update / view</code></td><td>Coach management</td></tr>
+  <tr><td><code>competition:create / update / publish / view</code></td><td>Competition management</td></tr>
+  <tr><td><code>event:create / view / approve / override / checkin / register</code></td><td>Event lifecycle</td></tr>
+  <tr><td><code>policy:create / update / view</code></td><td>Federation policies</td></tr>
+  <tr><td><code>payment:create / approve / view</code></td><td>Payment operations</td></tr>
+  <tr><td><code>report:view</code></td><td>Reports</td></tr>
+  <tr><td><code>audit:view</code></td><td>Audit logs</td></tr>
+  <tr><td><code>fayda:verify</code></td><td>Fayda ID verification</td></tr>
+  <tr><td><code>news:create / view / update / delete</code></td><td>News management</td></tr>
+</table>
+</div>
+</section>
+
+<section id="middleware">
+<h2>Middleware</h2>
+<table>
+  <tr><th>Middleware</th><th>File</th><th>Purpose</th></tr>
+  <tr>
+    <td><code>authenticate</code></td>
+    <td>auth.middleware.ts</td>
+    <td>Verifies Bearer JWT token in Authorization header. Decodes payload and attaches <code>req.user</code> with <code>{ userId, email, roles }</code>. Throws UnauthorizedError on missing/invalid/expired token.</td>
+  </tr>
+  <tr>
+    <td><code>authorize(permission)</code></td>
+    <td>authorize.middleware.ts</td>
+    <td>Higher-order middleware. Checks if the authenticated user has the specified permission via the authorization service (RBAC lookup through UserRole → RolePermission). Throws ForbiddenError if not.</td>
+  </tr>
+  <tr>
+    <td><code>validate(schema)</code></td>
+    <td>validate.middleware.ts</td>
+    <td>Parses and validates <code>req.body</code> against a Zod schema. Replaces body with parsed output. Returns 400 with field-level error details on failure.</td>
+  </tr>
+  <tr>
+    <td><code>enforcePolicies(scope, resolveTarget)</code></td>
+    <td>policy-enforcement.middleware.ts</td>
+    <td>Loads active policies for the given scope (CLUB/EVENT) and target. Blocks action if <code>rules.blocked === true</code> or if <code>rules.requiredPermissions</code> are not met.</td>
+  </tr>
+  <tr>
+    <td><code>asyncHandler(handler)</code></td>
+    <td>asyncHandler.ts</td>
+    <td>Wraps async route handlers to forward rejected promises to Express error middleware.</td>
+  </tr>
+</table>
+</section>
+
+<section id="rate-limiting">
+<h2>Rate Limiting</h2>
+<table>
+  <tr><th>Limiter</th><th>Window</th><th>Max Requests</th><th>Usage</th></tr>
+  <tr><td><code>publicLimiter</code></td><td>1 minute</td><td>100 / IP</td><td>Public read endpoints</td></tr>
+  <tr><td><code>writeLimiter</code></td><td>1 minute</td><td>20 / IP</td><td>Write operations (POST/PUT/DELETE)</td></tr>
+  <tr><td><code>uploadLimiter</code></td><td>1 minute</td><td>10 / IP</td><td>File uploads</td></tr>
+  <tr><td><code>searchLimiter</code></td><td>1 minute</td><td>60 / IP</td><td>Search/browse endpoints</td></tr>
+</table>
+<p>All limiters use standard headers (<code>RateLimit-*</code>) and return structured JSON on limit exceeded.</p>
+</section>
+
+<section id="jwt">
+<h2>JWT Token System</h2>
+<div class="card">
+<h4>Access Token</h4>
+<ul>
+  <li><strong>Payload:</strong> <code>{ userId, email?, roles[] }</code></li>
+  <li><strong>Default expiry:</strong> 15 minutes (configurable via <code>JWT_ACCESS_EXPIRES_IN</code>)</li>
+  <li><strong>Secret:</strong> <code>JWT_ACCESS_SECRET</code> (required)</li>
+</ul>
+<h4 style="margin-top:16px">Refresh Token</h4>
+<ul>
+  <li><strong>Payload:</strong> Same as access token</li>
+  <li><strong>Default expiry:</strong> 7 days (configurable via <code>JWT_REFRESH_EXPIRES_IN</code>)</li>
+  <li><strong>Secret:</strong> <code>JWT_REFRESH_SECRET</code> (required)</li>
+</ul>
+<p style="margin-top:12px"><strong>Flow:</strong> Login → receive both tokens → use access token in <code>Authorization: Bearer &lt;token&gt;</code> → refresh when expired → logout invalidates refresh token.</p>
+</div>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- INFRASTRUCTURE                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<section id="env-vars">
+<h2>Environment Variables</h2>
+<p>Copy <code>.env.example</code> to <code>.env</code> and fill in values:</p>
+
+<table>
+  <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>DATABASE_URL</code></td><td>✅</td><td>—</td><td>PostgreSQL connection string</td></tr>
+  <tr><td><code>JWT_ACCESS_SECRET</code></td><td>✅</td><td>—</td><td>Secret for signing access tokens</td></tr>
+  <tr><td><code>JWT_REFRESH_SECRET</code></td><td>✅</td><td>—</td><td>Secret for signing refresh tokens</td></tr>
+  <tr><td><code>JWT_ACCESS_EXPIRES_IN</code></td><td>❌</td><td>15m</td><td>Access token expiry</td></tr>
+  <tr><td><code>JWT_REFRESH_EXPIRES_IN</code></td><td>❌</td><td>7d</td><td>Refresh token expiry</td></tr>
+  <tr><td><code>PORT</code></td><td>❌</td><td>5000</td><td>Server port</td></tr>
+  <tr><td><code>NODE_ENV</code></td><td>❌</td><td>development</td><td>development / production</td></tr>
+  <tr><td><code>RESEND_API_KEY</code></td><td>❌</td><td>—</td><td>Resend email API key</td></tr>
+  <tr><td><code>RESEND_FROM_EMAIL</code></td><td>❌</td><td>onboarding@resend.dev</td><td>Sender email address</td></tr>
+  <tr><td><code>POSTMARK_API_TOKEN</code></td><td>❌</td><td>—</td><td>Postmark email API token</td></tr>
+  <tr><td><code>POSTMARK_SENDER</code></td><td>❌</td><td>onboarding@postmarkapp.com</td><td>Postmark sender</td></tr>
+  <tr><td><code>AT_USERNAME</code></td><td>❌</td><td>sandbox</td><td>Africa's Talking username</td></tr>
+  <tr><td><code>AT_API_KEY</code></td><td>❌</td><td>—</td><td>Africa's Talking API key</td></tr>
+  <tr><td><code>AT_SENDER_ID</code></td><td>❌</td><td>EACRMS</td><td>SMS sender ID</td></tr>
+  <tr><td><code>REDIS_URL</code></td><td>❌</td><td>redis://localhost:6379</td><td>Redis connection string</td></tr>
+  <tr><td><code>EXPOSE_OTP</code></td><td>❌</td><td>—</td><td>Set "true" in dev to expose OTP in responses</td></tr>
+  <tr><td><code>MOCK_PAYMENT_WEBHOOK_SECRET</code></td><td>❌</td><td>—</td><td>Secret for mock payment webhook</td></tr>
+</table>
+</section>
+
+<section id="docker">
+<h2>Docker</h2>
+
+<h3>Multi-stage Dockerfile</h3>
+<div class="card">
+<p>The Dockerfile uses a two-stage build for optimized production images:</p>
+<ol>
+  <li><strong>Builder stage:</strong> Installs all dependencies, generates Prisma client, compiles TypeScript</li>
+  <li><strong>Production stage:</strong> Installs only production dependencies, copies compiled output + Prisma client</li>
+</ol>
+<pre>
+FROM node:22-alpine AS builder
+# npm ci → prisma generate → tsc
+
+FROM node:22-alpine AS production
+# npm ci --omit=dev → copy dist + prisma client
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/server.js"]
+</pre>
+</div>
+
+<h3>Docker Compose (Local Dev)</h3>
+<pre>
+# docker-compose.yml
+services:
+  postgres:    # PostgreSQL 17 Alpine, port 5432, persistent volume
+  app:         # Builds from Dockerfile, port 5000, depends_on postgres healthy
+</pre>
+
+<h3>Docker Compose (Production)</h3>
+<pre>
+# docker-compose.prod.yml
+services:
+  postgres:    # PostgreSQL 17 Alpine, persistent volume, healthcheck
+  app:         # Uses pre-built image from GHCR, configurable HOST_PORT
+</pre>
+</section>
+
+<section id="cicd">
+<h2>CI/CD Pipeline</h2>
+
+<h3>CI Workflow (<code>.github/workflows/ci.yml</code>)</h3>
+<div class="card">
+<p><strong>Triggers:</strong> push to main, pull requests, workflow_call</p>
+<p><strong>Steps:</strong></p>
+<ol>
+  <li>Checkout code</li>
+  <li>Setup Node.js 22 (with npm cache)</li>
+  <li>Install dependencies (<code>npm ci</code>)</li>
+  <li>Generate Prisma client</li>
+  <li>Validate Prisma schema</li>
+  <li>Compile TypeScript</li>
+</ol>
+<p><strong>Services:</strong> PostgreSQL 17 Alpine (healthchecked)</p>
+</div>
+
+<h3>Deploy Workflow (<code>.github/workflows/deploy.yml</code>)</h3>
+<div class="card">
+<p><strong>Triggers:</strong> push to main, manual (workflow_dispatch)</p>
+<p><strong>Jobs:</strong></p>
+<ol>
+  <li><strong>build-and-push:</strong> Build Docker image → Push to GHCR (tagged with commit SHA + latest)</li>
+  <li><strong>deploy:</strong> SSH into server → Pull image → Docker Compose up → Cleanup unused images</li>
+</ol>
+<p><strong>Required GitHub Secrets:</strong></p>
+<ul>
+  <li><code>SSH_PRIVATE_KEY</code> — SSH key for deploy user</li>
+  <li><code>DEPLOY_HOST</code> — Server IP</li>
+  <li><code>DEPLOY_USER</code> — SSH username</li>
+  <li><code>DEPLOY_PORT</code> — SSH port (default: 22)</li>
+  <li><code>GHCR_TOKEN</code> / <code>GHCR_USERNAME</code> — Registry credentials</li>
+</ul>
+</div>
+</section>
+
+<section id="deployment">
+<h2>Deployment</h2>
+<div class="card">
+<h4>Server Layout</h4>
+<pre>
+/var/www/eacrms-backend/
+├── docker-compose.prod.yml
+├── .env                      # Production secrets (never in git)
+└── backups/                  # Database backups
+</pre>
+
+<h4>Deploy Commands</h4>
+<pre>
+# Pull and restart
+cd /var/www/eacrms-backend
+docker pull ghcr.io/&lt;owner&gt;/eacrms-backend:&lt;commit-sha&gt;
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+# Rollback to previous image
+# Update IMAGE_TAG in .env, then:
+docker compose -f docker-compose.prod.yml up -d
+
+# Check status
+docker compose -f docker-compose.prod.yml ps
+docker logs --follow eacrms-app
+</pre>
+
+<h4>Database Backup</h4>
+<pre>
+# Backup
+docker exec -t eacrms-postgres pg_dump -U postgres eacrms \
+  > backups/db_$(date +%F_%T).sql
+
+# Restore
+cat backups/db_2026-01-01_12:00:00.sql | \
+  docker exec -i eacrms-postgres psql -U postgres -d eacrms
+</pre>
+</div>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- REFERENCE                                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<section id="error-handling">
+<h2>Error Handling</h2>
+
+<h3>Error Class Hierarchy</h3>
+<pre>
+AppError (base, statusCode + message)
+├── BadRequestError       (400)
+├── UnauthorizedError     (401)
+├── ForbiddenError        (403)
+├── NotFoundError         (404)
+└── ConflictError         (409)
+</pre>
+
+<h3>Global Error Handler</h3>
+<p>All unhandled errors are caught by the Express error middleware in <code>app.ts</code>:</p>
+<pre>
+// AppError instances → { success: false, message: err.message }
+// Unknown errors → { success: false, message: "Internal server error." }
+</pre>
+
+<h3>Validation Errors</h3>
+<p>Zod validation errors return structured field-level details:</p>
+<pre>
+{
+  "success": false,
+  "message": "Validation failed.",
+  "errors": [
+    { "field": "email", "message": "Invalid email" },
+    { "field": "password", "message": "String must contain at least 8 characters" }
+  ]
+}
+</pre>
+</section>
+
+<section id="validation">
+<h2>Validation</h2>
+<p>
+  All request bodies are validated with <strong>Zod 4</strong> schemas. The <code>validate</code> middleware
+  parses the body and replaces <code>req.body</code> with the validated, typed output.
+</p>
+<p>Each module defines its own schemas in <code>*.validation.ts</code> files, e.g.:</p>
+<ul>
+  <li><code>createAthleteSchema</code> — athlete registration</li>
+  <li><code>createEventSchema</code> — event creation</li>
+  <li><code>createCoachSchema</code> — coach registration</li>
+  <li><code>registerClubSchema</code> — club registration</li>
+  <li><code>initiateVerificationSchema</code> — Fayda NIN input</li>
+  <li><code>confirmOtpSchema</code> — OTP confirmation</li>
+  <li><code>createPolicySchema</code> — policy creation</li>
+  <li><code>createNewsSchema</code> / <code>updateNewsSchema</code> — news articles</li>
+</ul>
+</section>
+
+<section id="caching">
+<h2>Caching (Redis)</h2>
+<p>Redis is used as a caching layer via <code>ioredis</code> with graceful degradation:</p>
+
+<pre>
+// lib/redis.ts — cache helpers
+
+// Get from cache or compute + cache
+const data = await cacheGet&lt;T&gt;(key, ttlSeconds, async () =&gt; {
+  // fallback: query database
+});
+
+// Invalidate by pattern
+await cacheInvalidate("athletes:*");
+</pre>
+
+<ul>
+  <li>Max retries: 3, with exponential backoff (200ms–2000ms)</li>
+  <li><strong>Graceful degradation:</strong> If Redis is unavailable, all operations fall through to the database without errors</li>
+  <li>Cache writes that fail are logged but non-critical</li>
+</ul>
+</section>
+
+<section id="file-structure-ref">
+<h2>Complete File Reference</h2>
+
+<h3>Source Files (76 module files + support)</h3>
+<table>
+  <tr><th>Directory</th><th>Files</th><th>Description</th></tr>
+  <tr><td><code>src/</code></td><td>app.ts, server.ts</td><td>Entry points</td></tr>
+  <tr><td><code>src/routes/</code></td><td>index.ts</td><td>Central route aggregator</td></tr>
+  <tr><td><code>src/modules/auth/</code></td><td>5 files</td><td>Authentication (register, login, refresh, logout, me)</td></tr>
+  <tr><td><code>src/modules/verification/</code></td><td>8 files</td><td>Email &amp; phone OTP verification</td></tr>
+  <tr><td><code>src/modules/users/</code></td><td>3 files</td><td>User management (admin CRUD)</td></tr>
+  <tr><td><code>src/modules/athletes/</code></td><td>7 files + dto/</td><td>Athlete registration, profiles, personal bests, training logs</td></tr>
+  <tr><td><code>src/modules/clubs/</code></td><td>5 files</td><td>Club registration &amp; verification</td></tr>
+  <tr><td><code>src/modules/coaches/</code></td><td>5 files + dto/</td><td>Coach registration &amp; management</td></tr>
+  <tr><td><code>src/modules/events/</code></td><td>8 files</td><td>Events, QR check-in, status management</td></tr>
+  <tr><td><code>src/modules/fayda/</code></td><td>7 files</td><td>Fayda National ID verification (mock + types)</td></tr>
+  <tr><td><code>src/modules/payments/</code></td><td>4 files</td><td>Payment processing (mock TeleBirr)</td></tr>
+  <tr><td><code>src/modules/policies/</code></td><td>5 files</td><td>Federation policy engine &amp; audit</td></tr>
+  <tr><td><code>src/modules/news/</code></td><td>6 files</td><td>News articles &amp; image uploads</td></tr>
+  <tr><td><code>src/modules/authorizations/</code></td><td>3 files</td><td>RBAC authorization service</td></tr>
+  <tr><td><code>src/modules/permissions/</code></td><td>—</td><td>Permission management</td></tr>
+  <tr><td><code>src/modules/roles/</code></td><td>—</td><td>Role management</td></tr>
+  <tr><td><code>src/modules/audit/</code></td><td>5 files</td><td>Audit logging</td></tr>
+  <tr><td><code>src/modules/meta/</code></td><td>2 files</td><td>Registration form options (disciplines, clubs, regions)</td></tr>
+  <tr><td><code>src/modules/health/</code></td><td>1 file</td><td>Health check endpoint</td></tr>
+  <tr><td><code>src/middleware/</code></td><td>6 files</td><td>Auth, authorize, validate, rate-limit, policy, async</td></tr>
+  <tr><td><code>src/errors/</code></td><td>6 files</td><td>Error class hierarchy</td></tr>
+  <tr><td><code>src/lib/</code></td><td>3 files + uploads/</td><td>Prisma, Redis, Postmark clients</td></tr>
+  <tr><td><code>src/utils/</code></td><td>3 files</td><td>JWT, phone normalization, auth contracts</td></tr>
+  <tr><td><code>src/docs/</code></td><td>7 files</td><td>Swagger spec generator + OpenAPI fragments</td></tr>
+  <tr><td><code>src/constants/</code></td><td>1 file</td><td>Audit action constants</td></tr>
+  <tr><td><code>src/types/</code></td><td>1 file</td><td>Express type augmentation</td></tr>
+</table>
+
+<h3>Configuration Files</h3>
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>package.json</code></td><td>Dependencies, scripts (dev/build/start)</td></tr>
+  <tr><td><code>tsconfig.json</code></td><td>TypeScript: ES2022, NodeNext module, strict, sourceMap</td></tr>
+  <tr><td><code>Dockerfile</code></td><td>Multi-stage Docker build (builder + production)</td></tr>
+  <tr><td><code>docker-compose.yml</code></td><td>Local dev: postgres + app</td></tr>
+  <tr><td><code>docker-compose.prod.yml</code></td><td>Production: postgres + pre-built image</td></tr>
+  <tr><td><code>.env.example</code></td><td>Environment variable template</td></tr>
+  <tr><td><code>.gitignore</code></td><td>Git ignore rules</td></tr>
+  <tr><td><code>.dockerignore</code></td><td>Docker ignore rules</td></tr>
+  <tr><td><code>DEPLOYMENT.md</code></td><td>Full deployment guide</td></tr>
+</table>
+</section>
+
+<hr>
+
+<div style="text-align:center; padding: 40px 0; color: var(--text-dim); font-size: 13px;">
+  <p><strong>EACRMS Backend</strong> — v1.0.0</p>
+  <p>Ethiopian Athletics Club &amp; Regional Management System</p>
+  <p style="margin-top: 8px;">Generated: August 26, 2026</p>
+  <p>Repository: <a href="https://github.com/Ged45/eacrms-backend">github.com/Ged45/eacrms-backend</a></p>
+</div>
+
+</main>
+</div>
+</body>
+</html>

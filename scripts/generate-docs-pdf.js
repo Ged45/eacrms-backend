@@ -1,8 +1,11 @@
 const puppeteer = require("puppeteer");
 const path = require("path");
+const fs = require("fs");
 
-const htmlPath = path.resolve(__dirname, "../docs/PROJECT_DOCUMENTATION.html");
-const pdfPath = path.resolve(__dirname, "../docs/PROJECT_DOCUMENTATION.pdf");
+const docsDir = path.resolve(__dirname, "../docs");
+const htmlPath = path.resolve(docsDir, "PROJECT_DOCUMENTATION.html");
+const pdfPath = path.resolve(docsDir, "PROJECT_DOCUMENTATION.pdf");
+const indexPath = path.resolve(docsDir, "index.html");
 
 async function generatePDF() {
   console.log("Launching browser...");
@@ -30,6 +33,10 @@ async function generatePDF() {
 
   await browser.close();
   console.log("PDF saved to " + pdfPath);
+
+  // Keep index.html in sync for GitHub Pages
+  fs.copyFileSync(htmlPath, indexPath);
+  console.log("index.html updated for GitHub Pages");
 }
 
 generatePDF().catch((err) => {
