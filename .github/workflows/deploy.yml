@@ -14,12 +14,20 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
+
+  # ============================================================
+  # BUILD AND PUSH IMAGE TO GHCR
+  # ============================================================
+
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Set lowercase image name
-        run: echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/eacrms-backend" >> "$GITHUB_ENV"
+        run: |
+          echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/eacrms-backend" >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -43,57 +51,115 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
             ${{ env.IMAGE_NAME }}:latest
 
+
+  # ============================================================
+  # DEPLOY TO COMPANY SERVER
+  # ============================================================
+
   deploy:
     needs: build-and-push
-    runs-on: ubuntu-latest
+
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - eacrms
+      - production
 
     steps:
-      - name: Deploy to company server
-        uses: appleboy/ssh-action@v1.2.2
-        timeout-minutes: 10
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || '22' }}
-          timeout: 30s
-          script: |
-            set -e
 
-            echo "========================================"
-            echo "Deploying EACRMS Backend"
-            echo "========================================"
+      - name: Verify self-hosted runner
+        run: |
+          echo "========================================"
+          echo "Self-hosted runner verification"
+          echo "========================================"
 
-            IMAGE="${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          echo "Hostname:"
+          hostname
 
-            echo "Image: $IMAGE"
+          echo "User:"
+          whoami
 
-            echo "Logging into GitHub Container Registry..."
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
-              -u "${{ secrets.GHCR_USERNAME }}" \
-              --password-stdin
+          echo "Working directory:"
+          pwd
 
-            echo "Pulling new Docker image..."
-            docker pull "$IMAGE"
+          echo "Docker:"
+          docker --version
 
-            echo "Updating deployment..."
-            cd /var/www/eacrms-backend
+          echo "Docker Compose:"
+          docker compose version
 
-            export EACRMS_IMAGE="$IMAGE"
+      - name: Deploy EACRMS
+        working-directory: /var/www/eacrms-backend
+        run: |
+          set -e
 
-            docker compose \
-              -f docker-compose.prod.yml \
-              up -d \
-              --remove-orphans
+          echo "========================================"
+          echo "Deploying EACRMS Backend"
+          echo "========================================"
 
-            echo "Cleaning unused Docker resources..."
-            docker image prune -f
+          IMAGE="${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
-            echo "Checking containers..."
-            docker compose \
-              -f docker-compose.prod.yml \
-              ps
+          echo "Image:"
+          echo "$IMAGE"
 
-            echo "========================================"
-            echo "Deployment completed"
-            echo "========================================"
+          echo "Logging into GitHub Container Registry..."
+
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+            -u "${{ secrets.GHCR_USERNAME }}" \
+            --password-stdin
+
+          echo "Pulling Docker image..."
+
+          docker pull "$IMAGE"
+
+          echo "Updating deployment..."
+
+          export EACRMS_IMAGE="$IMAGE"
+
+          docker compose \
+            -f docker-compose.prod.yml \
+            up -d \
+            --remove-orphans
+
+          echo "Cleaning unused Docker images..."
+
+          docker image prune -f
+
+          echo "Checking containers..."
+
+          docker compose \
+            -f docker-compose.prod.yml \
+            ps
+
+          echo "========================================"
+          echo "Deployment completed"
+          echo "========================================"
+
+
+      - name: Check application logs
+        if: always()
+        working-directory: /var/www/eacrms-backend
+        run: |
+          docker compose \
+            -f docker-compose.prod.yml \
+            logs \
+            --tail=50 \
+            app
+
+
+      - name: Health check
+        working-directory: /var/www/eacrms-backend
+        run: |
+          echo "Waiting for application..."
+
+          sleep 10
+
+          echo "Testing API..."
+
+          curl --fail \
+            --max-time 10 \
+            http://127.0.0.1:5000/api/v1/health
+
+          echo ""
+          echo "Health check passed!"
