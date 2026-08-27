@@ -67,16 +67,11 @@ export const authController = {
         await authService.login(
           validation.data
         );
-<<<<<<< HEAD
       return res.status(200).json({
         success: true,
         message: "Login successful.",
         data: result,
       });
-=======
-
-      return res.status(200).json(result);
->>>>>>> e313b70c07472df5230401ec24da0f76c0ce1709
     } catch (error) {
       next(error);
     }
@@ -116,10 +111,12 @@ export const authController = {
     next: NextFunction
   ) {
     try {
-      return res.status(501).json({
-        success: false,
-        message:
-          "Refresh token endpoint not implemented yet.",
+      const { refreshToken } = req.body;
+      const result = await authService.refresh(refreshToken);
+      return res.status(200).json({
+        success: true,
+        message: "Token refreshed successfully.",
+        data: result,
       });
     } catch (error) {
       next(error);

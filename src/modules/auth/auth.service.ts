@@ -11,6 +11,7 @@ import { RegisterDTO, LoginDTO } from "./auth.types";
 import {
   generateAccessToken,
   generateRefreshToken,
+  verifyRefreshToken,
 } from "../../utils/jwt";
 import { buildLoginResponse } from "../../utils/auth-contract";
 
@@ -65,7 +66,22 @@ export const authService = {
 
     const verification = user.email
       ? await verificationService.initiateEmailVerification(user.id, user.email)
-      : await verificationService.initiatePhoneVerification(user.id, user.phoneNumber!);
+      : await verificationService.initiatePhoneVerification(
+          user.id,
+          user.phoneNumber!
+        );
+
+    await auditService.log({
+      userId: user.id,
+      action: AuditActions.REGISTER,
+      entity: "USER",
+      entityId: user.id,
+      details: {
+        email: user.email,
+      },
+      ipAddress: metadata?.ipAddress,
+      userAgent: metadata?.userAgent,
+    });
 
     return {
       id: user.id,
@@ -75,7 +91,7 @@ export const authService = {
       phoneNumber: user.phoneNumber,
       status: user.status,
       createdAt: user.createdAt,
-      verification,
+      verification: { message: verification.message },
     };
   },
 
@@ -148,6 +164,38 @@ export const authService = {
       accessToken,
       refreshToken,
     });
+  },
+
+  /**
+   * ----------------------------------------
+   * Refresh Token
+   * ----------------------------------------
+   */
+  async refresh(refreshToken: string) {
+    if (!refreshToken) {
+      throw new Error("Refresh token is required.");
+    }
+
+    const payload = verifyRefreshToken(refreshToken);
+    const user = await authRepository.findUserById(payload.userId);
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new Error("Invalid refresh token or inactive user.");
+    }
+
+    const tokenPayload = {
+      userId: user.id,
+      email: user.email,
+      roles: user.roles.map((r) => r.role.name),
+    };
+
+    const newAccessToken = generateAccessToken(tokenPayload);
+    const newRefreshToken = generateRefreshToken(tokenPayload);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
   },
 
   /**
