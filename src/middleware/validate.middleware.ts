@@ -1,11 +1,24 @@
 import { Request, Response, NextFunction } from "express";
-import { ZodError, ZodTypeAny } from "zod";
+import { ZodError, ZodObject, ZodTypeAny } from "zod";
 
 export const validate =
   (schema: ZodTypeAny) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.body = schema.parse(req.body);
+      // Auto-detect if schema expects { body: ... } or flat req.body
+      const isWrapped = schema instanceof ZodObject && "body" in schema.shape;
+      
+      const target = isWrapped
+        ? { body: req.body ?? {}, query: req.query, params: req.params }
+        : req.body ?? {};
+
+      const parsed = schema.parse(target);
+
+      if (isWrapped && parsed.body) {
+        req.body = parsed.body;
+      } else if (!isWrapped) {
+        req.body = parsed;
+      }
 
       next();
     } catch (error) {
