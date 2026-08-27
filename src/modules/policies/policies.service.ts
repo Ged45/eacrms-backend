@@ -1,26 +1,19 @@
 import { policiesRepository } from "./policies.repository";
 import { auditService } from "../audit/audit.service";
-import { PolicyStatus } from "@prisma/client";
-import {
-  CreatePolicyInput,
-  UpdatePolicyInput,
-  PolicyFilterParams,
-} from "./policies.types";
+import { PolicyStatus, PolicyType } from "@prisma/client";
 
 export const policiesService = {
   /**
    * Create a new policy
    */
-  async create(data: CreatePolicyInput, userId: string) {
+  async create(data: any, userId: string) {
     const policy = await policiesRepository.create({
-      name: data.name,
+      name: data.title || data.name || data.code,
       description: data.description,
-      type: data.type,
-      content: data.content,
+      type: data.type || PolicyType.RULE,
+      content: data.content || (data.rules ? JSON.stringify(data.rules) : "{}"),
       scope: data.scope,
-      effectiveFrom: data.effectiveFrom,
-      effectiveTo: data.effectiveTo,
-      status: PolicyStatus.DRAFT,
+      status: data.status || PolicyStatus.DRAFT,
       createdBy: { connect: { id: userId } },
     });
 
@@ -43,7 +36,7 @@ export const policiesService = {
   /**
    * Get all policies with filters
    */
-  async getAll(filters?: PolicyFilterParams) {
+  async getAll(filters?: any) {
     const where: any = {};
 
     if (filters?.status) {
@@ -84,11 +77,9 @@ export const policiesService = {
   /**
    * Update a policy
    */
-  async update(id: string, data: UpdatePolicyInput, userId: string) {
-    // Verify policy exists
+  async update(id: string, data: any, userId: string) {
     const policy = await this.getById(id);
 
-    // Can only update if DRAFT or PENDING_APPROVAL
     if (
       policy.status !== PolicyStatus.DRAFT &&
       policy.status !== PolicyStatus.PENDING_APPROVAL
@@ -98,12 +89,20 @@ export const policiesService = {
       );
     }
 
-    const updated = await policiesRepository.update(id, {
+    const updatePayload: any = {
       ...data,
       updatedBy: { connect: { id: userId } },
-    });
+    };
 
-    // Log audit
+    if (data.title) updatePayload.name = data.title;
+    if (data.rules) updatePayload.content = JSON.stringify(data.rules);
+
+    delete updatePayload.title;
+    delete updatePayload.code;
+    delete updatePayload.rules;
+
+    const updated = await policiesRepository.update(id, updatePayload);
+
     await auditService.log({
       userId,
       action: "UPDATE",

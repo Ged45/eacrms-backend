@@ -8,7 +8,7 @@ export const policiesController = {
    */
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       const policy = await policiesService.create(req.body, userId);
       return res.status(201).json({
         success: true,
@@ -58,7 +58,7 @@ export const policiesController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       const policy = await policiesService.update(id, req.body, userId);
       return res.status(200).json({
         success: true,
@@ -76,7 +76,7 @@ export const policiesController = {
   async submitForApproval(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       const policy = await policiesService.submitForApproval(id, userId);
       return res.status(200).json({
         success: true,
@@ -94,7 +94,7 @@ export const policiesController = {
   async approve(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       const policy = await policiesService.approve(id, userId);
       return res.status(200).json({
         success: true,
@@ -112,7 +112,7 @@ export const policiesController = {
   async archive(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       const policy = await policiesService.archive(id, userId);
       return res.status(200).json({
         success: true,
@@ -130,7 +130,7 @@ export const policiesController = {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       const result = await policiesService.delete(id, userId);
       return res.status(200).json({
         message: "Policy soft-deleted successfully.",
