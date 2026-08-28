@@ -13,8 +13,10 @@ const options: swaggerJsdoc.Options = {
       {
         url: "https://localhost:5000/api/v1",
         description: "Local development server",
+      },
+      {
         url: "http://196.189.239.105:5000/api/v1",
-        description: "production server",
+        description: "Production server",
       },
     ],
 
