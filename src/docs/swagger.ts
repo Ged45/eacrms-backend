@@ -7,12 +7,17 @@ const options: swaggerJsdoc.Options = {
       title: "EACRMS API",
       version: "1.0.0",
       description:
-        "Ethiopian Athletics Club Registration & Management System — REST API",
+        "Ethiopian Athletics Competition & Roster Management System — REST API",
     },
     servers: [
       {
+<<<<<<< HEAD
         url: "https://localhost:5000/api/v1",
         description: "Local development server",
+=======
+        url: "http://196.189.239.105:5000/api/v1",
+        description: "production server",
+>>>>>>> origin/main
       },
     ],
 
