@@ -15,6 +15,7 @@ import paymentRoutes, { eventPaymentRoutes } from "../modules/payments/payment.r
 import metaRoutes from "../modules/meta/meta.routes";
 import newsRoutes from "../modules/news/news.routes";
 import newsUploadRoutes from "../modules/news/news.upload.routes";
+import galleryRoutes from "../modules/gallery/gallery.routes";
 
 const router = Router();
 
@@ -46,5 +47,8 @@ router.use("/", metaRoutes);
 
 router.use("/news", newsRoutes);
 router.use("/news/upload", newsUploadRoutes);
+
+router.use("/gallery", galleryRoutes);
+router.use("/media", galleryRoutes);
 
 export default router;

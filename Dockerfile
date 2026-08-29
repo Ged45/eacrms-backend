@@ -24,6 +24,9 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 
+# Install tsx globally for seeding (not in production deps)
+RUN npm install -g tsx
+
 # Copy generated Prisma client and compiled output from builder
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
@@ -31,5 +34,6 @@ COPY prisma ./prisma
 
 EXPOSE 5000
 
-# Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/server.js"]
+# Run migrations, seed (non-fatal), then start server
+# Using ; instead of && so server starts even if seed fails
+CMD ["sh", "-c", "npx prisma migrate deploy && (npx prisma db seed || echo 'Seed skipped or failed') && node dist/server.js"]

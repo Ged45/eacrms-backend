@@ -540,6 +540,55 @@ const options: swaggerJsdoc.Options = {
             createdAt: { type: "string", format: "date-time" },
           },
         },
+
+        // Gallery
+        GalleryAlbum: {
+          type: "object",
+          description: "Gallery album item for listing.",
+          properties: {
+            id:              { type: "string", example: "alb-2026-championship-01" },
+            title:           { type: "string", example: "24th African Athletics Championship Highlights" },
+            amharicTitle:    { type: "string", nullable: true, example: "24ኛው የአፍሪካ አትሌቲክስ ሻምፒዮና" },
+            category:        { type: "string", enum: ["CHAMPIONSHIP", "MARATHON", "ROAD_RACE", "TRAINING", "NATIONAL_TEAM", "HISTORIC"] },
+            type:            { type: "string", enum: ["PHOTO", "VIDEO"] },
+            coverImage:      { type: "string", format: "uri", example: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200" },
+            description:     { type: "string", example: "Stunning moments from the championship." },
+            eventDate:       { type: "string", format: "date-time", example: "2026-07-15T00:00:00.000Z" },
+            location:        { type: "string", example: "Addis Ababa National Stadium" },
+            photographer:    { type: "string", nullable: true, example: "EAF Media Unit / Solomon Desta" },
+            videoUrl:        { type: "string", format: "uri", nullable: true },
+            videoDuration:   { type: "string", nullable: true, example: "12:45" },
+            capturesCount:   { type: "integer", example: 24 },
+            isFeatured:      { type: "boolean", example: true },
+          },
+        },
+        GalleryCapture: {
+          type: "object",
+          description: "Individual media capture within a gallery album.",
+          properties: {
+            id:              { type: "string" },
+            url:             { type: "string", format: "uri", example: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200" },
+            thumbnailUrl:    { type: "string", format: "uri", nullable: true, example: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400" },
+            title:           { type: "string", example: "5000m Final Sprint" },
+            caption:         { type: "string", example: "Ethiopian runner kicks in the final 200m to claim gold" },
+            photographer:    { type: "string", nullable: true, example: "EAF Media Unit" },
+            timestamp:       { type: "string", nullable: true, example: "Final 100m Sprint" },
+          },
+        },
+        GalleryDetail: {
+          allOf: [
+            { $ref: "#/components/schemas/GalleryAlbum" },
+            {
+              type: "object",
+              properties: {
+                captures: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/GalleryCapture" },
+                },
+              },
+            },
+          ],
+        },
       },
     },
 
@@ -1697,6 +1746,115 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+
+      // ── Gallery ──────────────────────────────────────────────────────────────
+      "/gallery": {
+        get: {
+          tags: ["Gallery"],
+          summary: "List gallery albums",
+          description: "Public endpoint. Returns a paginated list of gallery albums with optional filtering by category, type, and featured status.",
+          security: [],
+          parameters: [
+            { name: "category", in: "query", schema: { type: "string", enum: ["ALL", "CHAMPIONSHIP", "MARATHON", "ROAD_RACE", "TRAINING", "NATIONAL_TEAM", "HISTORIC"] }, description: "Filter by category" },
+            { name: "type", in: "query", schema: { type: "string", enum: ["PHOTO", "VIDEO"] }, description: "Filter by media type" },
+            { name: "featured", in: "query", schema: { type: "boolean" }, description: "Filter by featured status" },
+            { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "Page number" },
+            { name: "limit", in: "query", schema: { type: "integer", default: 12 }, description: "Items per page" },
+          ],
+          responses: {
+            200: {
+              description: "Gallery list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/GalleryAlbum" } },
+                      meta: {
+                        type: "object",
+                        properties: {
+                          total: { type: "integer" },
+                          page: { type: "integer" },
+                          limit: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/gallery/{id}": {
+        get: {
+          tags: ["Gallery"],
+          summary: "Get gallery album detail",
+          description: "Public endpoint. Returns full album details including all captures with URLs, thumbnails, and metadata.",
+          security: [],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Gallery album ID" },
+          ],
+          responses: {
+            200: {
+              description: "Gallery album detail",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/GalleryDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: "Gallery album not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/media": {
+        get: {
+          tags: ["Gallery"],
+          summary: "List gallery albums (alias)",
+          description: "Alias for /gallery — same public endpoint for media browsing.",
+          security: [],
+          parameters: [
+            { name: "category", in: "query", schema: { type: "string", enum: ["ALL", "CHAMPIONSHIP", "MARATHON", "ROAD_RACE", "TRAINING", "NATIONAL_TEAM", "HISTORIC"] }, description: "Filter by category" },
+            { name: "type", in: "query", schema: { type: "string", enum: ["PHOTO", "VIDEO"] }, description: "Filter by media type" },
+            { name: "featured", in: "query", schema: { type: "boolean" }, description: "Filter by featured status" },
+            { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "Page number" },
+            { name: "limit", in: "query", schema: { type: "integer", default: 12 }, description: "Items per page" },
+          ],
+          responses: {
+            200: {
+              description: "Gallery list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/GalleryAlbum" } },
+                      meta: {
+                        type: "object",
+                        properties: {
+                          total: { type: "integer" },
+                          page: { type: "integer" },
+                          limit: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
       // ── Payments ───────────────────────────────────────────────────────────
       "/payments/mock/webhook": {
         post: {

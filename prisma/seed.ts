@@ -627,28 +627,174 @@ async function seedAthletes() {
   console.log(`   Inserted ${created} athletes`);
 }
 
+async function seedGallery() {
+  console.log("🌱 Seeding Gallery...");
+
+  const galleries = [
+    {
+      title: "24th African Athletics Championship Highlights",
+      amharicTitle: "24ኛው የአፍሪካ አትሌቲክስ ሻምፒዮና ማብሪያዎች",
+      category: "CHAMPIONSHIP",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200",
+      description: "Stunning moments from the 24th African Athletics Championship held at Addis Ababa Stadium. Ethiopian athletes dominated the distance events, securing multiple gold medals.",
+      eventDate: new Date("2026-07-15T00:00:00Z"),
+      location: "Addis Ababa National Stadium",
+      photographer: "EAF Media Unit / Solomon Desta",
+      capturesCount: 24,
+      isFeatured: true,
+      captures: [
+        { title: "5000m Final Sprint", caption: "Ethiopian runner kicks in the final 200m to claim gold", url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400", sortOrder: 1 },
+        { title: "Medal Ceremony", caption: "Gold medal presentation for the 10000m event", url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400", sortOrder: 2 },
+        { title: "Marathon Start", caption: "Mass start of the men's marathon event", url: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=400", sortOrder: 3 },
+      ],
+    },
+    {
+      title: "2026 Addis Ababa Marathon",
+      amharicTitle: "2026 አዲስ አበባ ማራቶን",
+      category: "MARATHON",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200",
+      description: "Highlights from the annual Addis Ababa Marathon, featuring elite runners from across Ethiopia and international participants.",
+      eventDate: new Date("2026-06-20T00:00:00Z"),
+      location: "Addis Ababa City Center",
+      photographer: "EAF Media Unit",
+      capturesCount: 18,
+      isFeatured: true,
+      captures: [
+        { title: "Lead Pack", caption: "Elite runners maintaining pace through kilometer 30", url: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=400", sortOrder: 1 },
+        { title: "Finish Line", caption: "Winner crosses the finish line with arms raised", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400", sortOrder: 2 },
+      ],
+    },
+    {
+      title: "National Training Camp - Sendafa",
+      amharicTitle: "የእንደፋ ብሔራዊ ስልጠና አካባቢ",
+      category: "TRAINING",
+      type: "VIDEO",
+      coverImage: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200",
+      description: "Behind-the-scenes footage from the national team training camp in Sendafa, showcasing altitude training sessions.",
+      eventDate: new Date("2026-05-10T00:00:00Z"),
+      location: "Sendafa Training Center",
+      photographer: "EAF Media Unit / Abebe Bikila Jr.",
+      videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      videoDuration: "12:45",
+      capturesCount: 8,
+      isFeatured: false,
+      captures: [
+        { title: "Morning Track Session", caption: "Athletes warming up on the track at dawn", url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400", sortOrder: 1 },
+        { title: "Altitude Training", caption: "Team running on high-altitude trails", url: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=400", sortOrder: 2 },
+      ],
+    },
+    {
+      title: "Historic Moments: Ethiopian Athletics Legacy",
+      amharicTitle: "ታሪካዊ ጊዜያት: የኢትዮጵያ አትሌቲክስ ቅርስ",
+      category: "HISTORIC",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200",
+      description: "A collection of iconic moments from Ethiopia's rich athletics history, from Abebe Bikila's Olympic victories to modern-day champions.",
+      eventDate: new Date("2026-01-01T00:00:00Z"),
+      location: "Various Locations",
+      photographer: "EAF Archives",
+      capturesCount: 30,
+      isFeatured: true,
+      captures: [
+        { title: "Abebe Bikila - Rome 1960", caption: "Barefoot victory in the Olympic marathon", url: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=400", sortOrder: 1, photographer: "IOC Archives" },
+        { title: "Haile Gebrselassie - Berlin 2008", caption: "World record marathon in Berlin", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400", sortOrder: 2, photographer: "Getty Images" },
+      ],
+    },
+    {
+      title: "2026 National Road Race Series",
+      amharicTitle: "2026 ብሔራዊ የመንገድ ሩጫ ተዝማሮ",
+      category: "ROAD_RACE",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200",
+      description: "Scenic shots from the national road race series across Ethiopia's beautiful landscapes.",
+      eventDate: new Date("2026-04-05T00:00:00Z"),
+      location: "Hawassa to Arba Minch",
+      photographer: "EAF Media Unit",
+      capturesCount: 42,
+      isFeatured: false,
+      captures: [
+        { title: "Lakeside Running", caption: "Runners passing by Lake Hawassa", url: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=400", sortOrder: 1 },
+      ],
+    },
+    {
+      title: "Ethiopia vs Kenya - East African Challenge",
+      amharicTitle: "ኢትዮጵያ በንRequestMethod ላለው ሩጫ",
+      category: "CHAMPIONSHIP",
+      type: "VIDEO",
+      coverImage: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200",
+      description: "Full video highlights from the East African Challenge track and field meet.",
+      eventDate: new Date("2026-03-25T00:00:00Z"),
+      location: "Addis Ababa National Stadium",
+      photographer: "EAF Media Unit",
+      videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      videoDuration: "28:30",
+      capturesCount: 12,
+      isFeatured: false,
+      captures: [
+        { title: "1500m Battle", caption: "Intense battle for the lead in the 1500m final", url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400", sortOrder: 1 },
+      ],
+    },
+  ];
+
+  let created = 0;
+  for (const gallery of galleries) {
+    const existing = await prisma.gallery.findFirst({ where: { title: gallery.title } });
+    if (existing) continue;
+
+    const { captures, ...galleryData } = gallery;
+
+    await prisma.$transaction(async (tx) => {
+      const createdGallery = await tx.gallery.create({
+        data: galleryData,
+      });
+
+      if (captures && captures.length > 0) {
+        await tx.galleryCapture.createMany({
+          data: captures.map((capture) => ({
+            galleryId: createdGallery.id,
+            ...capture,
+          })),
+        });
+      }
+    });
+
+    created++;
+    console.log(`   ✅ Created gallery: ${gallery.title}`);
+  }
+
+  console.log(`   Inserted ${created} gallery albums`);
+}
+
+async function safeSeed(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (error) {
+    console.error(`   ⚠️  ${name} failed:`, error instanceof Error ? error.message : error);
+    // Continue with next seed
+  }
+}
+
 async function main() {
   console.log("🚀 Starting Database Seed...");
 
-  await seedRoles();
-
-  await seedPermissions();
-
-  await seedRolePermissions();
-
-  await seedSuperAdmin();
-
-  await seedNews();
-
-  await seedAthletes();
+  await safeSeed("Roles", seedRoles);
+  await safeSeed("Permissions", seedPermissions);
+  await safeSeed("Role Permissions", seedRolePermissions);
+  await safeSeed("Super Admin", seedSuperAdmin);
+  await safeSeed("News", seedNews);
+  await safeSeed("Athletes", seedAthletes);
+  await safeSeed("Gallery", seedGallery);
 
   console.log("✅ Database Seed Completed");
 }
 
 main()
   .catch((error) => {
-    console.error(error);
-    process.exit(1);
+    console.error("Seed error:", error);
+    // Don't exit with error - let server start
+    console.log("⚠️  Continuing despite seed error...");
   })
   .finally(async () => {
     await prisma.$disconnect();
