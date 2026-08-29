@@ -456,19 +456,20 @@ async function seedAthletes() {
   }
 
   // Create a verified club
-  const club = await prisma.club.upsert({
-    where: { name: "Addis Ababa Runners Club" },
-    update: {},
-    create: {
-      name: "Addis Ababa Runners Club",
-      shortName: "AARC",
-      email: "info@aarc.et",
-      phone: "+251911000000",
-      city: "Addis Ababa",
-      region: "Addis Ababa",
-      verificationStatus: "VERIFIED",
-    },
-  });
+  let club = await prisma.club.findFirst({ where: { email: "info@aarc.et" } });
+  if (!club) {
+    club = await prisma.club.create({
+      data: {
+        name: "Addis Ababa Runners Club",
+        shortName: "AARC",
+        email: "info@aarc.et",
+        phone: "+251911000000",
+        city: "Addis Ababa",
+        region: "Addis Ababa",
+        verificationStatus: "VERIFIED",
+      },
+    });
+  }
 
   // Create 6 Ethiopian athletes
   const athletes = [
