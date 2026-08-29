@@ -140,9 +140,10 @@ export const authService = {
 
     // Extract athlete / club metadata for the mobile login response
     const athlete = (user as any).athlete;
+    const adminOf = (user as any).adminOf;
     const fanNumber = athlete?.faydaNin ?? undefined;
-    const clubId = athlete?.clubId ?? undefined;
-    const clubName = athlete?.club?.name ?? undefined;
+    const clubId = athlete?.clubId ?? adminOf?.id ?? undefined;
+    const clubName = athlete?.club?.name ?? adminOf?.name ?? undefined;
 
     return buildLoginResponse({
       userId: user.id,

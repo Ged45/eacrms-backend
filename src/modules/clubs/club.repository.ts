@@ -29,7 +29,15 @@ export const clubRepository = {
       },
       include: {
         athletes: true,
-
+        admin: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
         verifier: {
           select: {
             id: true,

@@ -168,6 +168,7 @@ model User {
   coaches            Coach[]
   registeredCoaches  Coach[]   @relation("RegisteredCoaches")
   verifiedClubs      Club[]    @relation("VerifiedClubs")
+  adminOf            Club?     @relation("ClubAdmin")
   verifications      UserVerification[]
   eventsCreated      Event[]   @relation("EventCreator")
   eventsApproved     Event[]   @relation("EventApprover")
@@ -222,6 +223,8 @@ model Club {
   verifiedBy         String?
   verifiedAt         DateTime?
   rejectionReason    String?
+  adminId            String?                @unique
+  admin              User?                  @relation("ClubAdmin", fields: [adminId], references: [id], onDelete: SetNull)
   athletes           Athlete[]
   coaches            Coach[]
   createdAt          DateTime               @default(now())

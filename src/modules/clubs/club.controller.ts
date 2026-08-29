@@ -7,6 +7,24 @@ import { asyncHandler } from "../../middleware/asyncHandler";
 export const clubController = {
   /**
    * --------------------------------------------------------
+   * Register Club Admin (User + Club)
+   * POST /api/v1/clubs/register-admin
+   * --------------------------------------------------------
+   */
+  registerAdmin: asyncHandler(async (req: Request, res: Response) => {
+    const result = await clubService.registerAdmin(req.body, {
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent") || undefined,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Club admin registered successfully. Please verify your account.",
+      data: result,
+    });
+  }),
+  /**
+   * --------------------------------------------------------
    * Register Club
    * POST /api/v1/clubs/register
    * --------------------------------------------------------
