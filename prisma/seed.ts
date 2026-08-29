@@ -427,6 +427,206 @@ async function seedNews() {
   console.log(`   Inserted ${articles.length} news articles`);
 }
 
+async function seedAthletes() {
+  console.log("🌱 Seeding Athletes...");
+
+  const password = await bcrypt.hash("AthletePass123!", SALT_ROUNDS);
+
+  // Create sports first
+  const sports = [
+    { name: "Marathon", description: "Long-distance road running event (42.195 km)" },
+    { name: "5000m", description: "Middle-distance track event" },
+    { name: "10000m", description: "Long-distance track event" },
+    { name: "1500m", description: "Middle-distance track event" },
+    { name: "100m", description: "Sprint event" },
+    { name: "800m", description: "Middle-distance track event" },
+    { name: "3000m Steeplechase", description: "Obstacle race event" },
+    { name: "Half Marathon", description: "Road running event (21.1 km)" },
+  ];
+
+  const createdSports: Record<string, string> = {};
+  for (const sport of sports) {
+    const existing = await prisma.sport.findUnique({ where: { name: sport.name } });
+    if (existing) {
+      createdSports[sport.name] = existing.id;
+    } else {
+      const created = await prisma.sport.create({ data: sport });
+      createdSports[sport.name] = created.id;
+    }
+  }
+
+  // Create a verified club
+  const club = await prisma.club.upsert({
+    where: { name: "Addis Ababa Runners Club" },
+    update: {},
+    create: {
+      name: "Addis Ababa Runners Club",
+      shortName: "AARC",
+      email: "info@aarc.et",
+      phone: "+251911000000",
+      city: "Addis Ababa",
+      region: "Addis Ababa",
+      verificationStatus: "VERIFIED",
+    },
+  });
+
+  // Create 6 Ethiopian athletes
+  const athletes = [
+    {
+      email: "tigist.akele@example.com",
+      firstName: "Tigist",
+      lastName: "Akele",
+      phoneNumber: "+251911100001",
+      dateOfBirth: new Date("1998-03-15"),
+      gender: "FEMALE" as const,
+      nationality: "Ethiopian",
+      sportName: "Marathon",
+      region: "Addis Ababa",
+      height: 165,
+      weight: 52,
+      primaryEvent: "Marathon",
+      amharicName: "ትግስት አክሌ",
+    },
+    {
+      email: "kelvin.kiptum@example.com",
+      firstName: "Kelvin",
+      lastName: "Kiptoo",
+      phoneNumber: "+251911100002",
+      dateOfBirth: new Date("2000-11-20"),
+      gender: "MALE" as const,
+      nationality: "Ethiopian",
+      sportName: "5000m",
+      region: "Oromia",
+      height: 170,
+      weight: 56,
+      primaryEvent: "5000m",
+      amharicName: "ཀልቫን ኪፕቱ",
+    },
+    {
+      email: "letesenbet.gidey@example.com",
+      firstName: "Letesenbet",
+      lastName: "Gidey",
+      phoneNumber: "+251911100003",
+      dateOfBirth: new Date("1998-03-20"),
+      gender: "FEMALE" as const,
+      nationality: "Ethiopian",
+      sportName: "10000m",
+      region: "Tigray",
+      height: 168,
+      weight: 50,
+      primaryEvent: "10000m",
+      amharicName: "ለተሰንበት ግيدይ",
+    },
+    {
+      email: "samuel.tefera@example.com",
+      firstName: "Samuel",
+      lastName: "Tefera",
+      phoneNumber: "+251911100004",
+      dateOfBirth: new Date("2000-05-23"),
+      gender: "MALE" as const,
+      nationality: "Ethiopian",
+      sportName: "1500m",
+      region: "Addis Ababa",
+      height: 172,
+      weight: 58,
+      primaryEvent: "1500m",
+      amharicName: "ሳሙኤል ተፈራ",
+    },
+    {
+      email: "helen.obiri@example.com",
+      firstName: "Helen",
+      lastName: "Obiri",
+      phoneNumber: "+251911100005",
+      dateOfBirth: new Date("1988-09-13"),
+      gender: "FEMALE" as const,
+      nationality: "Ethiopian",
+      sportName: "5000m",
+      region: "Oromia",
+      height: 160,
+      weight: 48,
+      primaryEvent: "5000m",
+      amharicName: "ሄለን ኦቢሪ",
+    },
+    {
+      email: "yumqi.jawo@example.com",
+      firstName: "Yomif",
+      lastName: "Kejelcha",
+      phoneNumber: "+251911100006",
+      dateOfBirth: new Date("1997-08-02"),
+      gender: "MALE" as const,
+      nationality: "Ethiopian",
+      sportName: "10000m",
+      region: "Oromia",
+      height: 175,
+      weight: 62,
+      primaryEvent: "10000m",
+      amharicName: "ዮሚፍ ከጀላ",
+    },
+  ];
+
+  const athleteRole = await prisma.role.findUnique({ where: { name: "ATHLETE" } });
+  if (!athleteRole) {
+    console.log("   ⚠️  ATHLETE role not found, skipping athlete seeding");
+    return;
+  }
+
+  let created = 0;
+  for (const athlete of athletes) {
+    // Skip if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email: athlete.email } });
+    if (existingUser) continue;
+
+    await prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          email: athlete.email,
+          password,
+          firstName: athlete.firstName,
+          lastName: athlete.lastName,
+          phoneNumber: athlete.phoneNumber,
+          status: "ACTIVE",
+          emailVerified: true,
+          phoneVerified: true,
+        },
+      });
+
+      // Assign ATHLETE role
+      await tx.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: athleteRole.id,
+        },
+      });
+
+      // Create athlete profile
+      await tx.athlete.create({
+        data: {
+          userId: user.id,
+          dateOfBirth: athlete.dateOfBirth,
+          gender: athlete.gender,
+          nationality: athlete.nationality,
+          sportId: createdSports[athlete.sportName],
+          clubId: club.id,
+          region: athlete.region,
+          height: athlete.height,
+          weight: athlete.weight,
+          primaryEvent: athlete.primaryEvent,
+          amharicName: athlete.amharicName,
+          status: "ACTIVE",
+          faydaVerified: true,
+          registrationSource: "SELF",
+        },
+      });
+    });
+
+    created++;
+    console.log(`   ✅ Created athlete: ${athlete.firstName} ${athlete.lastName}`);
+  }
+
+  console.log(`   Inserted ${created} athletes`);
+}
+
 async function main() {
   console.log("🚀 Starting Database Seed...");
 
@@ -439,6 +639,8 @@ async function main() {
   await seedSuperAdmin();
 
   await seedNews();
+
+  await seedAthletes();
 
   console.log("✅ Database Seed Completed");
 }
