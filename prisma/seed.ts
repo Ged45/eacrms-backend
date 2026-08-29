@@ -570,59 +570,72 @@ async function seedAthletes() {
     console.log("   ⚠️  ATHLETE role not found, skipping athlete seeding");
     return;
   }
+  console.log(`   Found ATHLETE role: ${athleteRole.id}`);
 
   let created = 0;
   for (const athlete of athletes) {
     // Skip if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email: athlete.email } });
-    if (existingUser) continue;
+    if (existingUser) {
+      console.log(`   ⏭️  Skipped (exists): ${athlete.firstName} ${athlete.lastName}`);
+      continue;
+    }
 
-    await prisma.$transaction(async (tx) => {
-      // Create user
-      const user = await tx.user.create({
-        data: {
-          email: athlete.email,
-          password,
-          firstName: athlete.firstName,
-          lastName: athlete.lastName,
-          phoneNumber: athlete.phoneNumber,
-          status: "ACTIVE",
-          emailVerified: true,
-          phoneVerified: true,
-        },
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Create user
+        const user = await tx.user.create({
+          data: {
+            email: athlete.email,
+            password,
+            firstName: athlete.firstName,
+            lastName: athlete.lastName,
+            phoneNumber: athlete.phoneNumber,
+            status: "ACTIVE",
+            emailVerified: true,
+            phoneVerified: true,
+          },
+        });
+
+        // Assign ATHLETE role
+        await tx.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: athleteRole.id,
+          },
+        });
+
+        // Create athlete profile
+        const sportId = createdSports[athlete.sportName];
+        if (!sportId) {
+          throw new Error(`Sport not found: ${athlete.sportName}`);
+        }
+
+        await tx.athlete.create({
+          data: {
+            userId: user.id,
+            dateOfBirth: athlete.dateOfBirth,
+            gender: athlete.gender,
+            nationality: athlete.nationality,
+            sportId,
+            clubId: club.id,
+            region: athlete.region,
+            height: athlete.height,
+            weight: athlete.weight,
+            primaryEvent: athlete.primaryEvent,
+            amharicName: athlete.amharicName,
+            status: "ACTIVE",
+            faydaVerified: true,
+            registrationSource: "SELF",
+          },
+        });
       });
 
-      // Assign ATHLETE role
-      await tx.userRole.create({
-        data: {
-          userId: user.id,
-          roleId: athleteRole.id,
-        },
-      });
-
-      // Create athlete profile
-      await tx.athlete.create({
-        data: {
-          userId: user.id,
-          dateOfBirth: athlete.dateOfBirth,
-          gender: athlete.gender,
-          nationality: athlete.nationality,
-          sportId: createdSports[athlete.sportName],
-          clubId: club.id,
-          region: athlete.region,
-          height: athlete.height,
-          weight: athlete.weight,
-          primaryEvent: athlete.primaryEvent,
-          amharicName: athlete.amharicName,
-          status: "ACTIVE",
-          faydaVerified: true,
-          registrationSource: "SELF",
-        },
-      });
-    });
-
-    created++;
-    console.log(`   ✅ Created athlete: ${athlete.firstName} ${athlete.lastName}`);
+      created++;
+      console.log(`   ✅ Created athlete: ${athlete.firstName} ${athlete.lastName}`);
+    } catch (error) {
+      console.error(`   ❌ Failed to create ${athlete.firstName} ${athlete.lastName}:`, error instanceof Error ? error.message : error);
+    }
   }
 
   console.log(`   Inserted ${created} athletes`);
