@@ -135,6 +135,16 @@ const permissions = [
   { name: "news:view", description: "View news articles" },
   { name: "news:update", description: "Update news articles" },
   { name: "news:delete", description: "Delete news articles" },
+
+  // Contact
+  { name: "contact:view", description: "View contact submissions" },
+  { name: "contact:update", description: "Update contact submissions" },
+  { name: "contact:delete", description: "Delete contact submissions" },
+
+  // Results
+  { name: "result:view", description: "View live results and audit history" },
+  { name: "result:update", description: "Update live scores and incidents" },
+  { name: "result:certify", description: "Certify official results" },
 ];
 
 /**
@@ -171,6 +181,12 @@ const rolePermissions: Record<string, string[]> = {
     "news:view",
     "news:update",
     "news:delete",
+    "contact:view",
+    "contact:update",
+    "contact:delete",
+    "result:view",
+    "result:update",
+    "result:certify",
   ],
 
   REGIONAL_ADMIN: [
@@ -211,6 +227,8 @@ const rolePermissions: Record<string, string[]> = {
   REFEREE: [
     "competition:view",
     "report:view",
+    "result:view",
+    "result:update",
   ],
 
   MEDICAL_STAFF: [

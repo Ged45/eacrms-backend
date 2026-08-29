@@ -132,12 +132,63 @@ enum VerificationStatus {
   EXPIRED
 }
 
+enum ContactStatus {
+  PENDING
+  IN_REVIEW
+  RESPONDED
+  RESOLVED
+  CLOSED
+}
+
+enum ContactSubject {
+  GENERAL_INQUIRY
+  ATHLETE_REGISTRATION
+  CLUB_REGISTRATION
+  EVENT_INQUIRY
+  PAYMENT_ISSUE
+  TECHNICAL_SUPPORT
+  MEDIA_INQUIRY
+  PARTNERSHIP
+  COMPLAINT
+  FEEDBACK
+}
+
 enum FaydaVerificationStatus {
   PENDING
   OTP_SENT
   CONFIRMED
   FAILED
   EXPIRED
+}
+
+enum ResultStatus {
+  SCHEDULED
+  LIVE
+  FINAL
+  CERTIFIED
+  REJECTED
+}
+
+enum ResultVersionStatus {
+  SCHEDULED
+  LIVE
+  FINAL
+}
+
+enum IncidentType {
+  SCORE_CHANGE
+  PENALTY
+  WARNING
+  DISQUALIFICATION
+  INJURY
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -179,6 +230,10 @@ model User {
   eventCheckIns      EventCheckIn[] @relation("CheckInScanner")
   payments           Payment[]
   eventRegistrations EventRegistration[]
+  contactSubmissions ContactSubmission[] @relation("ContactResponder")
+  eventResultVersions EventResultVersion[] @relation("ResultUpdater")
+  eventResultIncidents EventResultIncident[] @relation("IncidentCreator")
+  certifiedResults   EventResult[] @relation("ResultCertifier")
 }
 
 model Sport {
@@ -504,6 +559,7 @@ model Event {
   attendees         EventAttendee[]
   registrations     EventRegistration[]
   payments          Payment[]
+  result            EventResult?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -626,6 +682,85 @@ model PaymentStatusHistory {
   createdAt      DateTime    @default(now())
 
   @@index([paymentId, createdAt])
+}
+
+model ContactSubmission {
+  id              String          @id @default(cuid())
+  referenceNumber String          @unique
+  name            String
+  email           String
+  phone           String?
+  subject         ContactSubject
+  message         String
+  relatedTo       String?
+  relatedId       String?
+  status          ContactStatus   @default(PENDING)
+  adminNotes      String?
+  respondedAt     DateTime?
+  respondedById   String?
+  respondedBy     User?           @relation("ContactResponder", fields: [respondedById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([subject])
+  @@index([referenceNumber])
+  @@index([createdAt])
+}
+
+model EventResult {
+  id           String             @id @default(cuid())
+  eventId      String             @unique
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status       ResultStatus       @default(SCHEDULED)
+  homeTeam     String?
+  awayTeam     String?
+  homeScore    Int                @default(0)
+  awayScore    Int                @default(0)
+  notes        String?
+  certifiedById String?
+  certifiedBy   User?             @relation("ResultCertifier", fields: [certifiedById], references: [id])
+  certifiedAt  DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  versions     EventResultVersion[]
+  incidents    EventResultIncident[]
+
+  @@index([eventId])
+  @@index([status])
+}
+
+model EventResultVersion {
+  id            String             @id @default(cuid())
+  eventResultId String
+  eventResult   EventResult        @relation(fields: [eventResultId], references: [id], onDelete: Cascade)
+  status        ResultVersionStatus @default(LIVE)
+  homeScore     Int                @default(0)
+  awayScore     Int                @default(0)
+  notes         String?
+  updatedByRole String?
+  updatedById   String
+  updatedBy     User               @relation("ResultUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  createdAt     DateTime           @default(now())
+
+  @@index([eventResultId, createdAt])
+}
+
+model EventResultIncident {
+  id            String            @id @default(cuid())
+  eventResultId String
+  eventResult   EventResult       @relation(fields: [eventResultId], references: [id], onDelete: Cascade)
+  type          IncidentType
+  description   String
+  severity      IncidentSeverity  @default(MEDIUM)
+  relatedPlayer String?
+  relatedTeam   String?
+  createdById   String
+  createdBy     User              @relation("IncidentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime          @default(now())
+
+  @@index([eventResultId, createdAt])
 }
 
 model Policy {
