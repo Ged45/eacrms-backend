@@ -13,6 +13,26 @@ export interface RegisterClubDTO {
   logoUrl?: string;
 }
 
+export interface RegisterClubAdminDTO {
+  // User fields
+  email?: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+
+  // Club fields
+  clubName: string;
+  clubShortName?: string;
+  clubEmail?: string;
+  clubPhone?: string;
+  clubAddress?: string;
+  clubCity?: string;
+  clubRegion?: string;
+  licenseNumber?: string;
+  logoUrl?: string;
+}
+
 export interface ApproveClubDTO {
   approvedBy: string;
 }

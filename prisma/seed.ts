@@ -453,26 +453,388 @@ async function seedNews() {
   console.log(`   Inserted ${articles.length} news articles`);
 }
 
+async function seedAthletes() {
+  console.log("🌱 Seeding Athletes...");
+
+  const password = await bcrypt.hash("AthletePass123!", SALT_ROUNDS);
+
+  // Create sports first
+  const sports = [
+    { name: "Marathon", description: "Long-distance road running event (42.195 km)" },
+    { name: "5000m", description: "Middle-distance track event" },
+    { name: "10000m", description: "Long-distance track event" },
+    { name: "1500m", description: "Middle-distance track event" },
+    { name: "100m", description: "Sprint event" },
+    { name: "800m", description: "Middle-distance track event" },
+    { name: "3000m Steeplechase", description: "Obstacle race event" },
+    { name: "Half Marathon", description: "Road running event (21.1 km)" },
+  ];
+
+  const createdSports: Record<string, string> = {};
+  for (const sport of sports) {
+    const existing = await prisma.sport.findUnique({ where: { name: sport.name } });
+    if (existing) {
+      createdSports[sport.name] = existing.id;
+    } else {
+      const created = await prisma.sport.create({ data: sport });
+      createdSports[sport.name] = created.id;
+    }
+  }
+
+  // Create a verified club
+  let club = await prisma.club.findFirst({ where: { email: "info@aarc.et" } });
+  if (!club) {
+    club = await prisma.club.create({
+      data: {
+        name: "Addis Ababa Runners Club",
+        shortName: "AARC",
+        email: "info@aarc.et",
+        phone: "+251911000000",
+        city: "Addis Ababa",
+        region: "Addis Ababa",
+        verificationStatus: "VERIFIED",
+      },
+    });
+  }
+
+  // Create 6 Ethiopian athletes
+  const athletes = [
+    {
+      email: "tigist.akele@example.com",
+      firstName: "Tigist",
+      lastName: "Akele",
+      phoneNumber: "+251911100001",
+      dateOfBirth: new Date("1998-03-15"),
+      gender: "FEMALE" as const,
+      nationality: "Ethiopian",
+      sportName: "Marathon",
+      region: "Addis Ababa",
+      height: 165,
+      weight: 52,
+      primaryEvent: "Marathon",
+      amharicName: "ትግስት አክሌ",
+    },
+    {
+      email: "kelvin.kiptum@example.com",
+      firstName: "Kelvin",
+      lastName: "Kiptoo",
+      phoneNumber: "+251911100002",
+      dateOfBirth: new Date("2000-11-20"),
+      gender: "MALE" as const,
+      nationality: "Ethiopian",
+      sportName: "5000m",
+      region: "Oromia",
+      height: 170,
+      weight: 56,
+      primaryEvent: "5000m",
+      amharicName: "ཀልቫን ኪፕቱ",
+    },
+    {
+      email: "letesenbet.gidey@example.com",
+      firstName: "Letesenbet",
+      lastName: "Gidey",
+      phoneNumber: "+251911100003",
+      dateOfBirth: new Date("1998-03-20"),
+      gender: "FEMALE" as const,
+      nationality: "Ethiopian",
+      sportName: "10000m",
+      region: "Tigray",
+      height: 168,
+      weight: 50,
+      primaryEvent: "10000m",
+      amharicName: "ለተሰንበት ግيدይ",
+    },
+    {
+      email: "samuel.tefera@example.com",
+      firstName: "Samuel",
+      lastName: "Tefera",
+      phoneNumber: "+251911100004",
+      dateOfBirth: new Date("2000-05-23"),
+      gender: "MALE" as const,
+      nationality: "Ethiopian",
+      sportName: "1500m",
+      region: "Addis Ababa",
+      height: 172,
+      weight: 58,
+      primaryEvent: "1500m",
+      amharicName: "ሳሙኤል ተፈራ",
+    },
+    {
+      email: "helen.obiri@example.com",
+      firstName: "Helen",
+      lastName: "Obiri",
+      phoneNumber: "+251911100005",
+      dateOfBirth: new Date("1988-09-13"),
+      gender: "FEMALE" as const,
+      nationality: "Ethiopian",
+      sportName: "5000m",
+      region: "Oromia",
+      height: 160,
+      weight: 48,
+      primaryEvent: "5000m",
+      amharicName: "ሄለን ኦቢሪ",
+    },
+    {
+      email: "yumqi.jawo@example.com",
+      firstName: "Yomif",
+      lastName: "Kejelcha",
+      phoneNumber: "+251911100006",
+      dateOfBirth: new Date("1997-08-02"),
+      gender: "MALE" as const,
+      nationality: "Ethiopian",
+      sportName: "10000m",
+      region: "Oromia",
+      height: 175,
+      weight: 62,
+      primaryEvent: "10000m",
+      amharicName: "ዮሚፍ ከጀላ",
+    },
+  ];
+
+  const athleteRole = await prisma.role.findUnique({ where: { name: "ATHLETE" } });
+  if (!athleteRole) {
+    console.log("   ⚠️  ATHLETE role not found, skipping athlete seeding");
+    return;
+  }
+  console.log(`   Found ATHLETE role: ${athleteRole.id}`);
+
+  let created = 0;
+  for (const athlete of athletes) {
+    // Skip if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email: athlete.email } });
+    if (existingUser) {
+      console.log(`   ⏭️  Skipped (exists): ${athlete.firstName} ${athlete.lastName}`);
+      continue;
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Create user
+        const user = await tx.user.create({
+          data: {
+            email: athlete.email,
+            password,
+            firstName: athlete.firstName,
+            lastName: athlete.lastName,
+            phoneNumber: athlete.phoneNumber,
+            status: "ACTIVE",
+            emailVerified: true,
+            phoneVerified: true,
+          },
+        });
+
+        // Assign ATHLETE role
+        await tx.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: athleteRole.id,
+          },
+        });
+
+        // Create athlete profile
+        const sportId = createdSports[athlete.sportName];
+        if (!sportId) {
+          throw new Error(`Sport not found: ${athlete.sportName}`);
+        }
+
+        await tx.athlete.create({
+          data: {
+            userId: user.id,
+            dateOfBirth: athlete.dateOfBirth,
+            gender: athlete.gender,
+            nationality: athlete.nationality,
+            sportId,
+            clubId: club.id,
+            region: athlete.region,
+            height: athlete.height,
+            weight: athlete.weight,
+            primaryEvent: athlete.primaryEvent,
+            amharicName: athlete.amharicName,
+            status: "ACTIVE",
+            faydaVerified: true,
+            registrationSource: "SELF",
+          },
+        });
+      });
+
+      created++;
+      console.log(`   ✅ Created athlete: ${athlete.firstName} ${athlete.lastName}`);
+    } catch (error) {
+      console.error(`   ❌ Failed to create ${athlete.firstName} ${athlete.lastName}:`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  console.log(`   Inserted ${created} athletes`);
+}
+
+async function seedGallery() {
+  console.log("🌱 Seeding Gallery...");
+
+  const galleries = [
+    {
+      title: "24th African Athletics Championship Highlights",
+      amharicTitle: "24ኛው የአፍሪካ አትሌቲክስ ሻምፒዮና ማብሪያዎች",
+      category: "CHAMPIONSHIP",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200",
+      description: "Stunning moments from the 24th African Athletics Championship held at Addis Ababa Stadium. Ethiopian athletes dominated the distance events, securing multiple gold medals.",
+      eventDate: new Date("2026-07-15T00:00:00Z"),
+      location: "Addis Ababa National Stadium",
+      photographer: "EAF Media Unit / Solomon Desta",
+      capturesCount: 24,
+      isFeatured: true,
+      captures: [
+        { title: "5000m Final Sprint", caption: "Ethiopian runner kicks in the final 200m to claim gold", url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400", sortOrder: 1 },
+        { title: "Medal Ceremony", caption: "Gold medal presentation for the 10000m event", url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400", sortOrder: 2 },
+        { title: "Marathon Start", caption: "Mass start of the men's marathon event", url: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=400", sortOrder: 3 },
+      ],
+    },
+    {
+      title: "2026 Addis Ababa Marathon",
+      amharicTitle: "2026 አዲስ አበባ ማራቶን",
+      category: "MARATHON",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200",
+      description: "Highlights from the annual Addis Ababa Marathon, featuring elite runners from across Ethiopia and international participants.",
+      eventDate: new Date("2026-06-20T00:00:00Z"),
+      location: "Addis Ababa City Center",
+      photographer: "EAF Media Unit",
+      capturesCount: 18,
+      isFeatured: true,
+      captures: [
+        { title: "Lead Pack", caption: "Elite runners maintaining pace through kilometer 30", url: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=400", sortOrder: 1 },
+        { title: "Finish Line", caption: "Winner crosses the finish line with arms raised", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400", sortOrder: 2 },
+      ],
+    },
+    {
+      title: "National Training Camp - Sendafa",
+      amharicTitle: "የእንደፋ ብሔራዊ ስልጠና አካባቢ",
+      category: "TRAINING",
+      type: "VIDEO",
+      coverImage: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200",
+      description: "Behind-the-scenes footage from the national team training camp in Sendafa, showcasing altitude training sessions.",
+      eventDate: new Date("2026-05-10T00:00:00Z"),
+      location: "Sendafa Training Center",
+      photographer: "EAF Media Unit / Abebe Bikila Jr.",
+      videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      videoDuration: "12:45",
+      capturesCount: 8,
+      isFeatured: false,
+      captures: [
+        { title: "Morning Track Session", caption: "Athletes warming up on the track at dawn", url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400", sortOrder: 1 },
+        { title: "Altitude Training", caption: "Team running on high-altitude trails", url: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1526676037777-05a232554f77?w=400", sortOrder: 2 },
+      ],
+    },
+    {
+      title: "Historic Moments: Ethiopian Athletics Legacy",
+      amharicTitle: "ታሪካዊ ጊዜያት: የኢትዮጵያ አትሌቲክስ ቅርስ",
+      category: "HISTORIC",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200",
+      description: "A collection of iconic moments from Ethiopia's rich athletics history, from Abebe Bikila's Olympic victories to modern-day champions.",
+      eventDate: new Date("2026-01-01T00:00:00Z"),
+      location: "Various Locations",
+      photographer: "EAF Archives",
+      capturesCount: 30,
+      isFeatured: true,
+      captures: [
+        { title: "Abebe Bikila - Rome 1960", caption: "Barefoot victory in the Olympic marathon", url: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=400", sortOrder: 1, photographer: "IOC Archives" },
+        { title: "Haile Gebrselassie - Berlin 2008", caption: "World record marathon in Berlin", url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400", sortOrder: 2, photographer: "Getty Images" },
+      ],
+    },
+    {
+      title: "2026 National Road Race Series",
+      amharicTitle: "2026 ብሔራዊ የመንገድ ሩጫ ተዝማሮ",
+      category: "ROAD_RACE",
+      type: "PHOTO",
+      coverImage: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200",
+      description: "Scenic shots from the national road race series across Ethiopia's beautiful landscapes.",
+      eventDate: new Date("2026-04-05T00:00:00Z"),
+      location: "Hawassa to Arba Minch",
+      photographer: "EAF Media Unit",
+      capturesCount: 42,
+      isFeatured: false,
+      captures: [
+        { title: "Lakeside Running", caption: "Runners passing by Lake Hawassa", url: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=400", sortOrder: 1 },
+      ],
+    },
+    {
+      title: "Ethiopia vs Kenya - East African Challenge",
+      amharicTitle: "ኢትዮጵያ በንRequestMethod ላለው ሩጫ",
+      category: "CHAMPIONSHIP",
+      type: "VIDEO",
+      coverImage: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200",
+      description: "Full video highlights from the East African Challenge track and field meet.",
+      eventDate: new Date("2026-03-25T00:00:00Z"),
+      location: "Addis Ababa National Stadium",
+      photographer: "EAF Media Unit",
+      videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      videoDuration: "28:30",
+      capturesCount: 12,
+      isFeatured: false,
+      captures: [
+        { title: "1500m Battle", caption: "Intense battle for the lead in the 1500m final", url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200", thumbnailUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400", sortOrder: 1 },
+      ],
+    },
+  ];
+
+  let created = 0;
+  for (const gallery of galleries) {
+    const existing = await prisma.gallery.findFirst({ where: { title: gallery.title } });
+    if (existing) continue;
+
+    const { captures, ...galleryData } = gallery;
+
+    await prisma.$transaction(async (tx) => {
+      const createdGallery = await tx.gallery.create({
+        data: galleryData,
+      });
+
+      if (captures && captures.length > 0) {
+        await tx.galleryCapture.createMany({
+          data: captures.map((capture) => ({
+            galleryId: createdGallery.id,
+            ...capture,
+          })),
+        });
+      }
+    });
+
+    created++;
+    console.log(`   ✅ Created gallery: ${gallery.title}`);
+  }
+
+  console.log(`   Inserted ${created} gallery albums`);
+}
+
+async function safeSeed(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (error) {
+    console.error(`   ⚠️  ${name} failed:`, error instanceof Error ? error.message : error);
+    // Continue with next seed
+  }
+}
+
 async function main() {
   console.log("🚀 Starting Database Seed...");
 
-  await seedRoles();
-
-  await seedPermissions();
-
-  await seedRolePermissions();
-
-  await seedSuperAdmin();
-
-  await seedNews();
+  await safeSeed("Roles", seedRoles);
+  await safeSeed("Permissions", seedPermissions);
+  await safeSeed("Role Permissions", seedRolePermissions);
+  await safeSeed("Super Admin", seedSuperAdmin);
+  await safeSeed("News", seedNews);
+  await safeSeed("Athletes", seedAthletes);
+  await safeSeed("Gallery", seedGallery);
 
   console.log("✅ Database Seed Completed");
 }
 
 main()
   .catch((error) => {
-    console.error(error);
-    process.exit(1);
+    console.error("Seed error:", error);
+    // Don't exit with error - let server start
+    console.log("⚠️  Continuing despite seed error...");
   })
   .finally(async () => {
     await prisma.$disconnect();

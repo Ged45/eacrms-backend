@@ -599,7 +599,12 @@ export class AthleteService {
     region?: string;
     page?: number;
     limit?: number;
+    _nocache?: string;
   }) {
+    // Bypass cache if _nocache param is set
+    if (query._nocache) {
+      return athleteRepository.findPublicAthletes(query);
+    }
     // Cache for 5 minutes. Include query params in key for pagination/filtering.
     const cacheKey = `athletes:public:list:${JSON.stringify(query)}`;
     return cacheGet(cacheKey, 300, () => athleteRepository.findPublicAthletes(query));

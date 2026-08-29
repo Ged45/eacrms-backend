@@ -9,6 +9,7 @@ import { publicLimiter } from "../../middleware/rateLimit.middleware";
 
 import {
   registerClubSchema,
+  registerClubAdminSchema,
   rejectClubSchema,
 } from "./club.validation";
 
@@ -33,13 +34,24 @@ router.get(
 
 /**
  * ------------------------------------------------
- * Club Admin Registration
+ * Club Registration
  * ------------------------------------------------
  */
 router.post(
   "/register",
   validate(registerClubSchema),
   clubController.register
+);
+
+/**
+ * ------------------------------------------------
+ * Club Admin Registration (creates User + Club)
+ * ------------------------------------------------
+ */
+router.post(
+  "/register-admin",
+  validate(registerClubAdminSchema),
+  clubController.registerAdmin
 );
 
 /**

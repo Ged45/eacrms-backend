@@ -413,6 +413,27 @@ const options: swaggerJsdoc.Options = {
             logoUrl:       { type: "string", format: "uri", example: "https://example.com/logo.png" },
           },
         },
+        ClubAdminRegisterRequest: {
+          type: "object",
+          description: "Register a club admin account and club in a single request. Creates a User with CLUB_ADMIN role and a linked Club.",
+          required: ["password", "firstName", "lastName", "clubName"],
+          properties: {
+            email:          { type: "string", format: "email", example: "admin@addis-runners.et" },
+            password:       { type: "string", minLength: 8, example: "SecurePass123" },
+            firstName:      { type: "string", example: "John" },
+            lastName:       { type: "string", example: "Doe" },
+            phoneNumber:    { type: "string", example: "+251911234567" },
+            clubName:       { type: "string", minLength: 3, example: "Addis Ababa Runners Club" },
+            clubShortName:  { type: "string", example: "AARC" },
+            clubEmail:      { type: "string", format: "email", example: "info@aarc.et" },
+            clubPhone:      { type: "string", example: "+251911000000" },
+            clubAddress:    { type: "string", example: "Bole Road" },
+            clubCity:       { type: "string", example: "Addis Ababa" },
+            clubRegion:     { type: "string", example: "Addis Ababa" },
+            licenseNumber:  { type: "string", example: "EAF-2026-001" },
+            logoUrl:        { type: "string", format: "uri", example: "https://example.com/logo.png" },
+          },
+        },
         ClubProfile: {
           type: "object",
           description: "Public club profile for directory and detail views.",
@@ -522,6 +543,55 @@ const options: swaggerJsdoc.Options = {
             paidAt: { type: "string", format: "date-time", nullable: true },
             createdAt: { type: "string", format: "date-time" },
           },
+        },
+
+        // Gallery
+        GalleryAlbum: {
+          type: "object",
+          description: "Gallery album item for listing.",
+          properties: {
+            id:              { type: "string", example: "alb-2026-championship-01" },
+            title:           { type: "string", example: "24th African Athletics Championship Highlights" },
+            amharicTitle:    { type: "string", nullable: true, example: "24ኛው የአፍሪካ አትሌቲክስ ሻምፒዮና" },
+            category:        { type: "string", enum: ["CHAMPIONSHIP", "MARATHON", "ROAD_RACE", "TRAINING", "NATIONAL_TEAM", "HISTORIC"] },
+            type:            { type: "string", enum: ["PHOTO", "VIDEO"] },
+            coverImage:      { type: "string", format: "uri", example: "https://images.unsplash.com/photo-1461896836934-bd45ba732f6f?w=1200" },
+            description:     { type: "string", example: "Stunning moments from the championship." },
+            eventDate:       { type: "string", format: "date-time", example: "2026-07-15T00:00:00.000Z" },
+            location:        { type: "string", example: "Addis Ababa National Stadium" },
+            photographer:    { type: "string", nullable: true, example: "EAF Media Unit / Solomon Desta" },
+            videoUrl:        { type: "string", format: "uri", nullable: true },
+            videoDuration:   { type: "string", nullable: true, example: "12:45" },
+            capturesCount:   { type: "integer", example: 24 },
+            isFeatured:      { type: "boolean", example: true },
+          },
+        },
+        GalleryCapture: {
+          type: "object",
+          description: "Individual media capture within a gallery album.",
+          properties: {
+            id:              { type: "string" },
+            url:             { type: "string", format: "uri", example: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200" },
+            thumbnailUrl:    { type: "string", format: "uri", nullable: true, example: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400" },
+            title:           { type: "string", example: "5000m Final Sprint" },
+            caption:         { type: "string", example: "Ethiopian runner kicks in the final 200m to claim gold" },
+            photographer:    { type: "string", nullable: true, example: "EAF Media Unit" },
+            timestamp:       { type: "string", nullable: true, example: "Final 100m Sprint" },
+          },
+        },
+        GalleryDetail: {
+          allOf: [
+            { $ref: "#/components/schemas/GalleryAlbum" },
+            {
+              type: "object",
+              properties: {
+                captures: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/GalleryCapture" },
+                },
+              },
+            },
+          ],
         },
       },
     },
@@ -662,22 +732,83 @@ const options: swaggerJsdoc.Options = {
       "/auth/logout": {
         post: {
           tags: ["Auth"],
-          summary: "Logout",
-          description: "Stateless — client should discard the token.",
+          summary: "Logout and revoke refresh token",
+          description: "Revokes the refresh token from Redis so it can no longer be used. Client should also discard the access token locally.",
           security: [],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "Optional — the refresh token to revoke" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Logged out", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "Logged out successfully." } } } } } },
+            200: {
+              description: "Logged out successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Logged out successfully." },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
       "/auth/refresh": {
         post: {
           tags: ["Auth"],
-          summary: "Refresh token",
-          description: "Not yet implemented.",
+          summary: "Refresh access token",
+          description: "Exchange a valid refresh token for new access + refresh tokens. Implements token rotation — the old refresh token is revoked and a new one is issued.",
           security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["refreshToken"],
+                  properties: {
+                    refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "The refresh token received from POST /auth/login" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            501: { description: "Not implemented", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            200: {
+              description: "Tokens refreshed successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "New access token (15min expiry)" },
+                          refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "New refresh token (7d expiry, old one is revoked)" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Missing refresh token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Invalid, expired, or revoked refresh token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
@@ -1680,6 +1811,115 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+
+      // ── Gallery ──────────────────────────────────────────────────────────────
+      "/gallery": {
+        get: {
+          tags: ["Gallery"],
+          summary: "List gallery albums",
+          description: "Public endpoint. Returns a paginated list of gallery albums with optional filtering by category, type, and featured status.",
+          security: [],
+          parameters: [
+            { name: "category", in: "query", schema: { type: "string", enum: ["ALL", "CHAMPIONSHIP", "MARATHON", "ROAD_RACE", "TRAINING", "NATIONAL_TEAM", "HISTORIC"] }, description: "Filter by category" },
+            { name: "type", in: "query", schema: { type: "string", enum: ["PHOTO", "VIDEO"] }, description: "Filter by media type" },
+            { name: "featured", in: "query", schema: { type: "boolean" }, description: "Filter by featured status" },
+            { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "Page number" },
+            { name: "limit", in: "query", schema: { type: "integer", default: 12 }, description: "Items per page" },
+          ],
+          responses: {
+            200: {
+              description: "Gallery list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/GalleryAlbum" } },
+                      meta: {
+                        type: "object",
+                        properties: {
+                          total: { type: "integer" },
+                          page: { type: "integer" },
+                          limit: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/gallery/{id}": {
+        get: {
+          tags: ["Gallery"],
+          summary: "Get gallery album detail",
+          description: "Public endpoint. Returns full album details including all captures with URLs, thumbnails, and metadata.",
+          security: [],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Gallery album ID" },
+          ],
+          responses: {
+            200: {
+              description: "Gallery album detail",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/GalleryDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: "Gallery album not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/media": {
+        get: {
+          tags: ["Gallery"],
+          summary: "List gallery albums (alias)",
+          description: "Alias for /gallery — same public endpoint for media browsing.",
+          security: [],
+          parameters: [
+            { name: "category", in: "query", schema: { type: "string", enum: ["ALL", "CHAMPIONSHIP", "MARATHON", "ROAD_RACE", "TRAINING", "NATIONAL_TEAM", "HISTORIC"] }, description: "Filter by category" },
+            { name: "type", in: "query", schema: { type: "string", enum: ["PHOTO", "VIDEO"] }, description: "Filter by media type" },
+            { name: "featured", in: "query", schema: { type: "boolean" }, description: "Filter by featured status" },
+            { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "Page number" },
+            { name: "limit", in: "query", schema: { type: "integer", default: 12 }, description: "Items per page" },
+          ],
+          responses: {
+            200: {
+              description: "Gallery list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { type: "array", items: { $ref: "#/components/schemas/GalleryAlbum" } },
+                      meta: {
+                        type: "object",
+                        properties: {
+                          total: { type: "integer" },
+                          page: { type: "integer" },
+                          limit: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
       // ── Payments ───────────────────────────────────────────────────────────
       "/payments/mock/webhook": {
         post: {
@@ -2057,6 +2297,41 @@ const options: swaggerJsdoc.Options = {
           responses: {
             201: { description: "Submitted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } },
             400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+          },
+        },
+      },
+      "/clubs/register-admin": {
+        post: {
+          tags: ["Clubs"],
+          summary: "Register club admin (User + Club)",
+          description: "Public endpoint. Creates a User with CLUB_ADMIN role and a linked Club in a single transaction. Account starts as PENDING — verify email/phone, then wait for federation approval.",
+          security: [],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ClubAdminRegisterRequest" } } } },
+          responses: {
+            201: {
+              description: "Club admin registered",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Club admin registered successfully. Please verify your account." },
+                      data: {
+                        type: "object",
+                        properties: {
+                          user: { $ref: "#/components/schemas/UserPublic" },
+                          club: { $ref: "#/components/schemas/ClubProfile" },
+                          verification: { type: "object", description: "Verification details (code, expiresAt)" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+            409: { description: "Email/phone/club name already exists", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },

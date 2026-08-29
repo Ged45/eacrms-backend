@@ -218,6 +218,7 @@ model User {
   coaches            Coach[]
   registeredCoaches  Coach[]   @relation("RegisteredCoaches")
   verifiedClubs      Club[]    @relation("VerifiedClubs")
+  adminOf            Club?     @relation("ClubAdmin")
   verifications      UserVerification[]
   eventsCreated      Event[]   @relation("EventCreator")
   eventsApproved     Event[]   @relation("EventApprover")
@@ -276,6 +277,8 @@ model Club {
   verifiedBy         String?
   verifiedAt         DateTime?
   rejectionReason    String?
+  adminId            String?                @unique
+  admin              User?                  @relation("ClubAdmin", fields: [adminId], references: [id], onDelete: SetNull)
   athletes           Athlete[]
   coaches            Coach[]
   createdAt          DateTime               @default(now())
@@ -843,4 +846,62 @@ model News {
   @@index([category])
   @@index([isFeatured])
   @@index([publishedAt])
+}
+
+// ─── Gallery & Media ──────────────────────────────────────────────────────
+
+enum GalleryCategory {
+  CHAMPIONSHIP
+  MARATHON
+  ROAD_RACE
+  TRAINING
+  NATIONAL_TEAM
+  HISTORIC
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+model Gallery {
+  id              String           @id @default(cuid())
+  title           String
+  amharicTitle    String?
+  category        GalleryCategory
+  type            MediaType
+  coverImage      String
+  description     String
+  eventDate       DateTime
+  location        String
+  photographer    String?
+  videoUrl        String?
+  videoDuration   String?
+  capturesCount   Int              @default(0)
+  isFeatured      Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  captures        GalleryCapture[]
+
+  @@index([category])
+  @@index([type])
+  @@index([isFeatured])
+  @@index([eventDate])
+}
+
+model GalleryCapture {
+  id              String   @id @default(cuid())
+  galleryId       String
+  gallery         Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  url             String
+  thumbnailUrl    String?
+  title           String
+  caption         String
+  photographer    String?
+  timestamp       String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([galleryId])
 }

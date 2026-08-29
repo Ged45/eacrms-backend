@@ -259,6 +259,7 @@ export class AthleteController {
     const region = req.query.region as string | undefined;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 8;
+    const _nocache = req.query._nocache as string | undefined;
 
     const result = await athleteService.getPublicAthletes({
       featured,
@@ -268,6 +269,7 @@ export class AthleteController {
       region,
       page,
       limit,
+      _nocache,
     });
 
     return res.status(200).json({
