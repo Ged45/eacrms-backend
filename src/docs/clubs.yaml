@@ -29,6 +29,54 @@
             schema:
               $ref: '#/components/schemas/ValidationError'
 
+/clubs/register-admin:
+  post:
+    tags: [Clubs]
+    summary: Register club admin (User + Club)
+    description: >
+      Public endpoint. Creates a User with CLUB_ADMIN role and a linked Club
+      in a single transaction. Account starts as PENDING — verify email/phone,
+      then wait for federation approval.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClubAdminRegisterRequest'
+    responses:
+      '201':
+        description: Club admin registered
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: Club admin registered successfully. Please verify your account. }
+                data:
+                  type: object
+                  properties:
+                    user:
+                      $ref: '#/components/schemas/UserPublic'
+                    club:
+                      $ref: '#/components/schemas/ClubProfile'
+                    verification:
+                      type: object
+                      description: Verification details (code, expiresAt)
+      '400':
+        description: Validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationError'
+      '409':
+        description: Email/phone/club name already exists
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
 /clubs:
   get:
     tags: [Clubs]

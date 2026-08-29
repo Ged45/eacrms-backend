@@ -409,6 +409,27 @@ const options: swaggerJsdoc.Options = {
             logoUrl:       { type: "string", format: "uri", example: "https://example.com/logo.png" },
           },
         },
+        ClubAdminRegisterRequest: {
+          type: "object",
+          description: "Register a club admin account and club in a single request. Creates a User with CLUB_ADMIN role and a linked Club.",
+          required: ["password", "firstName", "lastName", "clubName"],
+          properties: {
+            email:          { type: "string", format: "email", example: "admin@addis-runners.et" },
+            password:       { type: "string", minLength: 8, example: "SecurePass123" },
+            firstName:      { type: "string", example: "John" },
+            lastName:       { type: "string", example: "Doe" },
+            phoneNumber:    { type: "string", example: "+251911234567" },
+            clubName:       { type: "string", minLength: 3, example: "Addis Ababa Runners Club" },
+            clubShortName:  { type: "string", example: "AARC" },
+            clubEmail:      { type: "string", format: "email", example: "info@aarc.et" },
+            clubPhone:      { type: "string", example: "+251911000000" },
+            clubAddress:    { type: "string", example: "Bole Road" },
+            clubCity:       { type: "string", example: "Addis Ababa" },
+            clubRegion:     { type: "string", example: "Addis Ababa" },
+            licenseNumber:  { type: "string", example: "EAF-2026-001" },
+            logoUrl:        { type: "string", format: "uri", example: "https://example.com/logo.png" },
+          },
+        },
         ClubProfile: {
           type: "object",
           description: "Public club profile for directory and detail views.",
@@ -2053,6 +2074,41 @@ const options: swaggerJsdoc.Options = {
           responses: {
             201: { description: "Submitted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } },
             400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+          },
+        },
+      },
+      "/clubs/register-admin": {
+        post: {
+          tags: ["Clubs"],
+          summary: "Register club admin (User + Club)",
+          description: "Public endpoint. Creates a User with CLUB_ADMIN role and a linked Club in a single transaction. Account starts as PENDING — verify email/phone, then wait for federation approval.",
+          security: [],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ClubAdminRegisterRequest" } } } },
+          responses: {
+            201: {
+              description: "Club admin registered",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Club admin registered successfully. Please verify your account." },
+                      data: {
+                        type: "object",
+                        properties: {
+                          user: { $ref: "#/components/schemas/UserPublic" },
+                          club: { $ref: "#/components/schemas/ClubProfile" },
+                          verification: { type: "object", description: "Verification details (code, expiresAt)" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } } },
+            409: { description: "Email/phone/club name already exists", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
