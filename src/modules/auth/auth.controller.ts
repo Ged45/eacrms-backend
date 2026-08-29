@@ -117,10 +117,20 @@ export const authController = {
     next: NextFunction
   ) {
     try {
-      return res.status(501).json({
-        success: false,
-        message:
-          "Refresh token endpoint not implemented yet.",
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          message: "Refresh token is required.",
+        });
+      }
+
+      const result = await authService.refresh(refreshToken);
+
+      return res.status(200).json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       next(error);
@@ -138,9 +148,14 @@ export const authController = {
     next: NextFunction
   ) {
     try {
+      const userId = req.user?.userId;
+      const { refreshToken } = req.body;
+
+      const result = await authService.logout(userId, refreshToken);
+
       return res.status(200).json({
         success: true,
-        message: "Logged out successfully.",
+        ...result,
       });
     } catch (error) {
       next(error);

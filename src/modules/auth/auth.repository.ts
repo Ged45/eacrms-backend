@@ -273,18 +273,4 @@ export const authRepository = {
     });
   },
 
-  /**
-   * ----------------------------------------
-   * Refresh Token (Future)
-   * ----------------------------------------
-   */
-
-  saveRefreshToken() {
-    // We'll implement this after
-    // creating the RefreshToken table.
-  },
-
-  revokeRefreshToken() {
-    // Coming later.
-  },
 };

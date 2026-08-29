@@ -63,4 +63,70 @@ export async function cacheInvalidate(pattern: string): Promise<void> {
   }
 }
 
+// ─── Refresh Token Storage ──────────────────────────────────────────────
+
+const REFRESH_TOKEN_PREFIX = "refresh:";
+const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+/**
+ * Store a refresh token in Redis.
+ * @param token - the refresh token JWT
+ * @param userId - the user ID
+ */
+export async function storeRefreshToken(token: string, userId: string): Promise<void> {
+  try {
+    await redis.set(
+      `${REFRESH_TOKEN_PREFIX}${token}`,
+      userId,
+      "EX",
+      REFRESH_TOKEN_TTL_SECONDS
+    );
+  } catch {
+    // Redis unavailable — non-critical
+  }
+}
+
+/**
+ * Check if a refresh token exists in Redis (is valid/not revoked).
+ * @param token - the refresh token JWT
+ * @returns userId if valid, null otherwise
+ */
+export async function getRefreshToken(token: string): Promise<string | null> {
+  try {
+    return await redis.get(`${REFRESH_TOKEN_PREFIX}${token}`);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Revoke a refresh token from Redis.
+ * @param token - the refresh token JWT
+ */
+export async function revokeRefreshToken(token: string): Promise<void> {
+  try {
+    await redis.del(`${REFRESH_TOKEN_PREFIX}${token}`);
+  } catch {
+    // Redis unavailable — non-critical
+  }
+}
+
+/**
+ * Revoke all refresh tokens for a user.
+ * @param userId - the user ID
+ */
+export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
+  try {
+    const keys = await redis.keys(`${REFRESH_TOKEN_PREFIX}*`);
+    for (const key of keys) {
+      const storedUserId = await redis.get(key);
+      if (storedUserId === userId) {
+        await redis.del(key);
+      }
+    }
+  } catch {
+    // Redis unavailable — non-critical
+  }
+}
+
 export default redis;

@@ -11,7 +11,13 @@ import { RegisterDTO, LoginDTO } from "./auth.types";
 import {
   generateAccessToken,
   generateRefreshToken,
+  verifyRefreshToken,
 } from "../../utils/jwt";
+import {
+  storeRefreshToken,
+  getRefreshToken,
+  revokeRefreshToken,
+} from "../../lib/redis";
 import { buildLoginResponse } from "../../utils/auth-contract";
 
 import { AuditActions } from "../../constants/audit-actions";
@@ -124,6 +130,9 @@ export const authService = {
 
     const refreshToken = generateRefreshToken(payload);
 
+    // Store refresh token in Redis
+    await storeRefreshToken(refreshToken, user.id);
+
     await auditService.log({
       userId: user.id,
       action: AuditActions.LOGIN,
@@ -158,6 +167,92 @@ export const authService = {
       clubId,
       clubName,
     });
+  },
+
+  /**
+   * ----------------------------------------
+   * Refresh Token
+   * ----------------------------------------
+   */
+  async refresh(refreshToken: string) {
+    // 1. Verify the refresh token JWT
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch {
+      throw new Error("Invalid or expired refresh token.");
+    }
+
+    // 2. Check if token exists in Redis (not revoked)
+    const storedUserId = await getRefreshToken(refreshToken);
+    if (!storedUserId) {
+      throw new Error("Refresh token has been revoked or expired.");
+    }
+
+    // 3. Verify the userId matches
+    if (storedUserId !== payload.userId) {
+      throw new Error("Refresh token mismatch.");
+    }
+
+    // 4. Fetch user to get current roles
+    const user = await authRepository.findUserById(payload.userId);
+    if (!user) {
+      throw new Error("User not found.");
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new Error("User account is not active.");
+    }
+
+    // 5. Revoke old refresh token (rotation)
+    await revokeRefreshToken(refreshToken);
+
+    // 6. Generate new tokens
+    const newPayload = {
+      userId: user.id,
+      email: user.email,
+      roles: user.roles.map((r) => r.role.name),
+    };
+
+    const newAccessToken = generateAccessToken(newPayload);
+    const newRefreshToken = generateRefreshToken(newPayload);
+
+    // 7. Store new refresh token
+    await storeRefreshToken(newRefreshToken, user.id);
+
+    // 8. Audit log
+    await auditService.log({
+      userId: user.id,
+      action: "TOKEN_REFRESH",
+      entity: "USER",
+      entityId: user.id,
+    });
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  },
+
+  /**
+   * ----------------------------------------
+   * Logout
+   * ----------------------------------------
+   */
+  async logout(userId: string, refreshToken?: string) {
+    // Revoke the specific refresh token if provided
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+
+    await auditService.log({
+      userId,
+      action: AuditActions.LOGOUT,
+      entity: "USER",
+      entityId: userId,
+    });
+
+    return { message: "Logged out successfully." };
   },
 
   /**
