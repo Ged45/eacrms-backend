@@ -728,22 +728,83 @@ const options: swaggerJsdoc.Options = {
       "/auth/logout": {
         post: {
           tags: ["Auth"],
-          summary: "Logout",
-          description: "Stateless — client should discard the token.",
+          summary: "Logout and revoke refresh token",
+          description: "Revokes the refresh token from Redis so it can no longer be used. Client should also discard the access token locally.",
           security: [],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "Optional — the refresh token to revoke" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Logged out", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "Logged out successfully." } } } } } },
+            200: {
+              description: "Logged out successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Logged out successfully." },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
       "/auth/refresh": {
         post: {
           tags: ["Auth"],
-          summary: "Refresh token",
-          description: "Not yet implemented.",
+          summary: "Refresh access token",
+          description: "Exchange a valid refresh token for new access + refresh tokens. Implements token rotation — the old refresh token is revoked and a new one is issued.",
           security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["refreshToken"],
+                  properties: {
+                    refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "The refresh token received from POST /auth/login" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            501: { description: "Not implemented", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            200: {
+              description: "Tokens refreshed successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      data: {
+                        type: "object",
+                        properties: {
+                          accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "New access token (15min expiry)" },
+                          refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIs...", description: "New refresh token (7d expiry, old one is revoked)" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Missing refresh token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            401: { description: "Invalid, expired, or revoked refresh token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
