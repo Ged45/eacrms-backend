@@ -466,6 +466,8 @@ async function seedAthletes() {
         phone: "+251911000000",
         city: "Addis Ababa",
         region: "Addis Ababa",
+        registrationNumber: "EAF-2026-001",
+        licenseNumber: "EAF-2026-001",
         verificationStatus: "VERIFIED",
       },
     });
