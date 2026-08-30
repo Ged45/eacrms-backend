@@ -446,7 +446,9 @@ async function seedNews() {
     });
 
     if (!existing) {
-      await prisma.news.create({ data: article });
+      await prisma.news.create({
+        data: article,
+      });
     }
   }
 
@@ -760,7 +762,7 @@ async function seedGallery() {
     },
     {
       title: "Ethiopia vs Kenya - East African Challenge",
-      amharicTitle: "ኢትዮጵያ በንRequestMethod ላለው ሩጫ",
+      amharicTitle: "ኢትዮጵያ በኬንያ ላይ ያለው የምስራቅ አፍሪካ ፈታኝ ተወዳዳሪ",
       category: "CHAMPIONSHIP",
       type: "VIDEO",
       coverImage: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200",
@@ -787,7 +789,10 @@ async function seedGallery() {
 
     await prisma.$transaction(async (tx) => {
       const createdGallery = await tx.gallery.create({
-        data: galleryData,
+        data: {
+          ...galleryData,
+          captures: undefined,
+        },
       });
 
       if (captures && captures.length > 0) {

@@ -15,12 +15,9 @@ import paymentRoutes, { eventPaymentRoutes } from "../modules/payments/payment.r
 import metaRoutes from "../modules/meta/meta.routes";
 import newsRoutes from "../modules/news/news.routes";
 import newsUploadRoutes from "../modules/news/news.upload.routes";
-<<<<<<< HEAD
 import contactRoutes from "../modules/contact/contact.routes";
 import resultRoutes from "../modules/results/result.routes";
-=======
 import galleryRoutes from "../modules/gallery/gallery.routes";
->>>>>>> origin/main
 
 const router = Router();
 
