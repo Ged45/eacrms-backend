@@ -11,6 +11,15 @@ export class ResultService {
     return result;
   }
 
+  async getIncidentsByEvent(eventId: string) {
+    const result = await resultRepository.findByEventId(eventId);
+    if (!result) {
+      throw new NotFoundError("Result not found for this event.");
+    }
+
+    return resultRepository.findIncidentsByEvent(eventId);
+  }
+
   async updateLiveScore(eventId: string, payload: {
     status?: "SCHEDULED" | "LIVE" | "FINAL";
     homeScore?: number;
@@ -32,14 +41,12 @@ export class ResultService {
           ? "LIVE"
           : "SCHEDULED";
 
-    const updated = await resultRepository.updateResult(eventId, {
+    return resultRepository.updateResultWithVersion(eventId, {
       status: nextStatus,
       homeScore: nextHomeScore,
       awayScore: nextAwayScore,
       notes: payload.notes ?? result.notes,
-    });
-
-    await resultRepository.createVersion(result.id, {
+    }, {
       eventResult: { connect: { id: result.id } },
       status: versionStatus,
       homeScore: nextHomeScore,
@@ -48,8 +55,6 @@ export class ResultService {
       updatedByRole: payload.updatedByRole ?? "REFEREE",
       updatedBy: { connect: { id: payload.updatedById } },
     });
-
-    return updated;
   }
 
   async addIncident(eventId: string, payload: {
@@ -82,14 +87,20 @@ export class ResultService {
       throw new BadRequestError("Certification must be set to true.");
     }
 
-    const updated = await resultRepository.updateResult(eventId, {
+    return resultRepository.updateResultWithVersion(eventId, {
       status: "CERTIFIED",
       notes: payload.notes ?? result.notes,
       certifiedBy: { connect: { id: payload.certifiedById } },
       certifiedAt: new Date(),
+    }, {
+      eventResult: { connect: { id: result.id } },
+      status: "FINAL",
+      homeScore: result.homeScore,
+      awayScore: result.awayScore,
+      notes: payload.notes ?? result.notes,
+      updatedByRole: "FEDERATION",
+      updatedBy: { connect: { id: payload.certifiedById } },
     });
-
-    return updated;
   }
 }
 

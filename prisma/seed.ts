@@ -49,6 +49,10 @@ const roles = [
     description: "Competition official",
   },
   {
+    name: "TIMER",
+    description: "Competition timekeeper",
+  },
+  {
     name: "MEDICAL_STAFF",
     description: "Medical verification",
   },
@@ -227,6 +231,12 @@ const rolePermissions: Record<string, string[]> = {
   REFEREE: [
     "competition:view",
     "report:view",
+    "result:view",
+    "result:update",
+  ],
+
+  TIMER: [
+    "competition:view",
     "result:view",
     "result:update",
   ],

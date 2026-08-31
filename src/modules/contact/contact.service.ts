@@ -60,7 +60,7 @@ export class ContactService {
     if (!existing) throw new NotFoundError("Submission not found.");
 
     const updates: Record<string, unknown> = {};
-    if (data.status) updates.status = data.status;
+    updates.status = data.respond === true ? "RESPONDED" : data.status;
     if (data.adminNotes !== undefined) updates.adminNotes = data.adminNotes;
     if (data.respond === true) updates.respondedAt = new Date();
     if (data.respond === true && data.responderId) updates.respondedById = data.responderId;

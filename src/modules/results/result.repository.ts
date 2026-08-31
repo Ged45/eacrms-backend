@@ -56,12 +56,39 @@ export class ResultRepository {
     });
   }
 
+  async updateResultWithVersion(
+    eventId: string,
+    resultData: Prisma.EventResultUpdateInput,
+    versionData: Prisma.EventResultVersionCreateInput,
+  ) {
+    return prisma.$transaction(async (transaction) => {
+      const result = await transaction.eventResult.update({
+        where: { eventId },
+        data: resultData,
+        include: {
+          versions: { orderBy: { createdAt: "desc" } },
+          incidents: { orderBy: { createdAt: "desc" } },
+        },
+      });
+
+      await transaction.eventResultVersion.create({ data: versionData });
+      return result;
+    });
+  }
+
   async createVersion(eventResultId: string, data: Prisma.EventResultVersionCreateInput) {
     return prisma.eventResultVersion.create({ data });
   }
 
   async createIncident(eventResultId: string, data: Prisma.EventResultIncidentCreateInput) {
     return prisma.eventResultIncident.create({ data });
+  }
+
+  async findIncidentsByEvent(eventId: string) {
+    return prisma.eventResultIncident.findMany({
+      where: { eventResult: { eventId } },
+      orderBy: { createdAt: "asc" },
+    });
   }
 }
 

@@ -26,7 +26,7 @@ export const contactSubmissionSchema = z.object({
 });
 
 export const updateContactStatusSchema = z.object({
-  status: z.enum(["PENDING", "IN_REVIEW", "RESPONDED", "RESOLVED", "CLOSED"]).optional(),
+  status: z.enum(["PENDING", "IN_REVIEW", "RESPONDED", "RESOLVED", "CLOSED"]),
   adminNotes: z.string().max(2000).nullable().optional(),
   respond: z.boolean().optional(),
 });

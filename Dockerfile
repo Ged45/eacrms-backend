@@ -39,4 +39,4 @@ EXPOSE 5000
 
 # Run migrations, seed (non-fatal), then start server
 # Using ; instead of && so server starts even if seed fails
-CMD ["sh", "-c", "npx prisma migrate deploy && (npx prisma db seed || echo 'Seed skipped or failed') && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && (npx prisma db seed || echo 'Seed skipped or failed') && node dist/src/server.js"]

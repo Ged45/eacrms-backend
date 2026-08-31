@@ -8,6 +8,11 @@ export class ResultController {
     return res.status(200).json({ success: true, data: result });
   });
 
+  getIncidentsByEvent = asyncHandler(async (req: Request, res: Response) => {
+    const incidents = await resultService.getIncidentsByEvent(req.params.eventId as string);
+    return res.status(200).json({ success: true, data: incidents });
+  });
+
   updateLiveScore = asyncHandler(async (req: Request, res: Response) => {
     const result = await resultService.updateLiveScore(req.params.eventId as string, {
       ...req.body,
