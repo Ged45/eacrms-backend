@@ -33,7 +33,32 @@ app.use(
   })
 );
 
-app.use(express.json());
+// Lenient JSON body parser — tolerates trailing commas, a common frontend mistake
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const contentType = req.headers["content-type"];
+  if (!contentType?.includes("application/json")) {
+    next();
+    return;
+  }
+
+  const chunks: Buffer[] = [];
+  req.on("data", (chunk: Buffer) => chunks.push(chunk));
+  req.on("end", () => {
+    let raw = Buffer.concat(chunks).toString("utf8");
+    // Strip trailing commas before } or ] — common in JS object literals
+    raw = raw.replace(/,\s*([}\]])/g, "$1");
+    try {
+      req.body = JSON.parse(raw);
+    } catch {
+      res.status(400).json({
+        success: false,
+        message: "Invalid JSON in request body.",
+      });
+      return;
+    }
+    next();
+  });
+});
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.resolve("uploads")));
