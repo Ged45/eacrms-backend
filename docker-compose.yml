@@ -1,5 +1,19 @@
 services:
 
+  redis:
+    image: redis:7-alpine
+    container_name: eacrms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   postgres:
     image: postgres:17-alpine
     container_name: eacrms-postgres
@@ -44,9 +58,13 @@ services:
       AT_USERNAME: ${AT_USERNAME:-sandbox}
       AT_API_KEY: ${AT_API_KEY:-}
       AT_SENDER_ID: ${AT_SENDER_ID:-EACRMS}
+      REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:
   postgres-data:
+  redis-data:
