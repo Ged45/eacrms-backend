@@ -67,7 +67,7 @@ export const verificationService = {
 
     return {
       message: `Verification code sent to ${email}. Valid for ${EMAIL_CODE_EXPIRY_HOURS} hours.`,
-      ...(process.env.NODE_ENV !== "production" && { code }),
+      code,
     };
   },
 
@@ -90,7 +90,7 @@ export const verificationService = {
 
     return {
       message: `OTP sent to ${phoneNumber}. Valid for ${PHONE_OTP_EXPIRY_MINUTES} minutes.`,
-      ...(process.env.NODE_ENV !== "production" && { otp }),
+      otp,
     };
   },
 
