@@ -12,6 +12,7 @@ COPY prisma ./prisma
 COPY src ./src
 
 # Generate Prisma client then compile TypeScript
+ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eacrms
 RUN npx prisma generate
 RUN npm run build
 
