@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 
@@ -8,6 +9,29 @@ import { AppError } from "./errors/AppError";
 import { swaggerSpec } from "./docs/swagger";
 
 const app = express();
+
+// CORS — allow configured origins or fall back to all
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
+  : [];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests with no origin (curl, server-to-server, mobile)
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} is not allowed by CORS`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["X-Total-Count"],
+    maxAge: 86400,
+  })
+);
 
 app.use(express.json());
 
