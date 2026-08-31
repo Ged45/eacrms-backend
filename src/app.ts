@@ -45,10 +45,17 @@ app.get("/", (_req, res) => {
 // Global error handler
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof AppError) {
-        res.status(err.statusCode).json({
+        const body: Record<string, unknown> = {
             success: false,
             message: err.message,
-        });
+            error: {
+                code: err.code,
+                status: err.statusCode,
+            },
+        };
+        if (err.entity) (body.error as Record<string, unknown>).entity = err.entity;
+        if (err.field) (body.error as Record<string, unknown>).field = err.field;
+        res.status(err.statusCode).json(body);
         return;
     }
 

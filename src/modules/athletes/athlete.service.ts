@@ -46,13 +46,13 @@ export class AthleteService {
 
     if (isSelfRegistration) {
       if (!data.faydaVerificationToken) {
-        throw new BadRequestError("Fayda verification token is required for self-registration.");
+        throw new BadRequestError("Fayda verification token is required for self-registration.", { code: "FAYDA_TOKEN_REQUIRED", entity: "Athlete", field: "faydaVerificationToken" });
       }
 
       try {
         demographics = verifyFaydaVerificationToken(data.faydaVerificationToken);
       } catch {
-        throw new BadRequestError("Invalid or expired Fayda verification token.");
+        throw new BadRequestError("Invalid or expired Fayda verification token.", { code: "FAYDA_TOKEN_INVALID", entity: "Athlete", field: "faydaVerificationToken" });
       }
     }
 
@@ -69,13 +69,13 @@ export class AthleteService {
     const nationality = data.nationality ?? "Ethiopian";
 
     if (!data.email || !data.password || !firstName || !lastName || !dateOfBirth || !gender) {
-      throw new BadRequestError("Missing required athlete registration fields.");
+      throw new BadRequestError("Missing required athlete registration fields.", { code: "MISSING_FIELDS", entity: "Athlete" });
     }
 
     // ── Check duplicate email ─────────────────────────────────────────────
     const existingUser = await athleteRepository.emailExists(data.email);
     if (existingUser) {
-      throw new ConflictError("Email already exists.");
+      throw new ConflictError("Email already exists.", { code: "EMAIL_CONFLICT", entity: "User", field: "email" });
     }
 
     // ── Validate sportIds (each must exist) ──────────────────────────────
@@ -84,7 +84,7 @@ export class AthleteService {
     for (const sid of sportIds) {
       const sport = await athleteRepository.sportExists(sid);
       if (!sport) {
-        throw new NotFoundError(`Sport not found: ${sid}`);
+        throw new NotFoundError(`Sport not found: ${sid}`, { code: "SPORT_NOT_FOUND", entity: "Sport" });
       }
     }
 
@@ -92,7 +92,7 @@ export class AthleteService {
     if (data.clubId) {
       const club = await athleteRepository.clubExists(data.clubId);
       if (!club) {
-        throw new NotFoundError("Club not found.");
+        throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
       }
     }
 
@@ -133,7 +133,7 @@ export class AthleteService {
 
     const athlete = await athleteRepository.register(athletePayload);
     if (!athlete) {
-      throw new BadRequestError("Failed to create athlete record.");
+      throw new BadRequestError("Failed to create athlete record.", { code: "ATHLETE_CREATE_FAILED", entity: "Athlete" });
     }
 
     // ── Audit log ─────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ export class AthleteService {
   async getById(id: string) {
     const athlete = await athleteRepository.findById(id);
     if (!athlete) {
-      throw new NotFoundError("Athlete not found.");
+      throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
     }
 
     const { password, ...user } = athlete.user;
@@ -185,7 +185,7 @@ export class AthleteService {
   async getByUserId(userId: string) {
     const athlete = await athleteRepository.findByUserId(userId);
     if (!athlete) {
-      throw new NotFoundError("Athlete profile not found.");
+      throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
     }
 
     const { password, ...user } = athlete.user;
@@ -230,14 +230,14 @@ export class AthleteService {
    */
   async approve(id: string, adminId: string) {
     const athlete = await athleteRepository.findById(id);
-    if (!athlete) throw new NotFoundError("Athlete not found.");
+    if (!athlete) throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     if (athlete.status === "APPROVED" || athlete.status === "ACTIVE") {
-      throw new BadRequestError("Athlete is already approved.");
+      throw new BadRequestError("Athlete is already approved.", { code: "ATHLETE_ALREADY_APPROVED", entity: "Athlete", field: "status" });
     }
 
     if (athlete.status === "REJECTED") {
-      throw new BadRequestError("Cannot approve a rejected athlete.");
+      throw new BadRequestError("Cannot approve a rejected athlete.", { code: "ATHLETE_REJECTED", entity: "Athlete", field: "status" });
     }
 
     const updated = await athleteRepository.updateStatus(id, "APPROVED");
@@ -260,10 +260,10 @@ export class AthleteService {
    */
   async reject(id: string, adminId: string, reason: string) {
     const athlete = await athleteRepository.findById(id);
-    if (!athlete) throw new NotFoundError("Athlete not found.");
+    if (!athlete) throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     if (athlete.status === "REJECTED") {
-      throw new BadRequestError("Athlete is already rejected.");
+      throw new BadRequestError("Athlete is already rejected.", { code: "ATHLETE_ALREADY_REJECTED", entity: "Athlete", field: "status" });
     }
 
     const updated = await athleteRepository.updateStatus(id, "REJECTED");
@@ -285,10 +285,10 @@ export class AthleteService {
    */
   async activate(id: string, adminId: string) {
     const athlete = await athleteRepository.findById(id);
-    if (!athlete) throw new NotFoundError("Athlete not found.");
+    if (!athlete) throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     if (athlete.status !== "APPROVED") {
-      throw new BadRequestError("Athlete must be APPROVED before being set to ACTIVE.");
+      throw new BadRequestError("Athlete must be APPROVED before being set to ACTIVE.", { code: "ATHLETE_NOT_APPROVED", entity: "Athlete", field: "status" });
     }
 
     const updated = await athleteRepository.updateStatus(id, "ACTIVE");
@@ -309,10 +309,10 @@ export class AthleteService {
    */
   async suspend(id: string, adminId: string, reason?: string) {
     const athlete = await athleteRepository.findById(id);
-    if (!athlete) throw new NotFoundError("Athlete not found.");
+    if (!athlete) throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     if (athlete.status === "SUSPENDED") {
-      throw new BadRequestError("Athlete is already suspended.");
+      throw new BadRequestError("Athlete is already suspended.", { code: "ATHLETE_ALREADY_SUSPENDED", entity: "Athlete", field: "status" });
     }
 
     const updated = await athleteRepository.updateStatus(id, "SUSPENDED");
@@ -336,7 +336,7 @@ export class AthleteService {
   async delete(id: string) {
     const athlete = await athleteRepository.findById(id);
     if (!athlete) {
-      throw new NotFoundError("Athlete not found.");
+      throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
     }
 
     await athleteRepository.delete(id);
@@ -360,7 +360,7 @@ export class AthleteService {
    */
   async getDashboardProfile(userId: string) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const now = new Date();
     const dob = new Date(athlete.dateOfBirth);
@@ -438,11 +438,11 @@ export class AthleteService {
       Object.entries(data).filter(([_, v]) => v !== undefined)
     );
     if (Object.keys(updates).length === 0) {
-      throw new BadRequestError("No fields to update.");
+      throw new BadRequestError("No fields to update.", { code: "NO_FIELDS", entity: "Athlete" });
     }
 
     const updated = await athleteRepository.updateProfile(userId, updates);
-    if (!updated) throw new NotFoundError("Athlete profile not found.");
+    if (!updated) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     // Invalidate public cache for this athlete
     await cacheInvalidate(`athletes:public:detail:${updated.id}`);
@@ -459,7 +459,7 @@ export class AthleteService {
    */
   async getPersonalBests(userId: string) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const all = await athleteRepository.getPersonalBests(athlete.id);
     return {
@@ -479,7 +479,7 @@ export class AthleteService {
    */
   async createPersonalBest(userId: string, data: { event: string; mark: string; date?: Date; venue?: string; scope?: "ALL_TIME" | "SEASON" }) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const pb = await athleteRepository.createPersonalBest(athlete.id, data);
     return {
@@ -494,7 +494,7 @@ export class AthleteService {
    */
   async getTrainingLogs(userId: string) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const logs = await athleteRepository.getTrainingLogs(athlete.id);
     return logs.map((l) => ({
@@ -509,7 +509,7 @@ export class AthleteService {
    */
   async createTrainingLog(userId: string, data: { date: Date; type: string; distanceKm: number; durationMinutes: number; notes?: string }) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const log = await athleteRepository.createTrainingLog(athlete.id, data);
     return {
@@ -524,7 +524,7 @@ export class AthleteService {
    */
   async getWeightLogs(userId: string) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const logs = await athleteRepository.getWeightLogs(athlete.id);
     return logs.map((l, i) => ({
@@ -539,7 +539,7 @@ export class AthleteService {
    */
   async createWeightLog(userId: string, data: { date: Date; weightKg: number }) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const log = await athleteRepository.createWeightLog(athlete.id, data);
     // Get previous entry for change calculation
@@ -559,7 +559,7 @@ export class AthleteService {
    */
   async getApplications(userId: string) {
     const athlete = await athleteRepository.findDashboardProfile(userId);
-    if (!athlete) throw new NotFoundError("Athlete profile not found.");
+    if (!athlete) throw new NotFoundError("Athlete profile not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const registrations = await athleteRepository.getApplications(athlete.id);
     return registrations.map((r) => ({
@@ -618,7 +618,7 @@ export class AthleteService {
     // Cache for 5 minutes per athlete.
     const cacheKey = `athletes:public:detail:${id}`;
     const a = await cacheGet(cacheKey, 300, () => athleteRepository.findPublicAthleteById(id));
-    if (!a) throw new NotFoundError("Athlete not found.");
+    if (!a) throw new NotFoundError("Athlete not found.", { code: "ATHLETE_NOT_FOUND", entity: "Athlete" });
 
     const dob = new Date(a.dateOfBirth);
     const ageYears = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
