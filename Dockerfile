@@ -7,10 +7,12 @@ COPY package*.json ./
 RUN npm ci
 
 COPY tsconfig.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
 
 # Generate Prisma client then compile TypeScript
+ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eacrms
 RUN npx prisma generate
 RUN npm run build
 
@@ -31,9 +33,10 @@ RUN npm install -g tsx
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 
 EXPOSE 5000
 
 # Run migrations, seed (non-fatal), then start server
 # Using ; instead of && so server starts even if seed fails
-CMD ["sh", "-c", "npx prisma migrate deploy && (npx prisma db seed || echo 'Seed skipped or failed') && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && (npx prisma db seed || echo 'Seed skipped or failed') && node dist/src/server.js"]

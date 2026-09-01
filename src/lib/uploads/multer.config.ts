@@ -16,7 +16,8 @@ function ensureDir(dir: string) {
 /**
  * Create a multer instance for a specific upload category.
  *
- * @param subfolder - subdirectory inside uploads/ (e.g. "news", "athletes")
+ * @param subfolder - sub
+ * directory inside uploads/ (e.g. "news", "athletes")
  * @param allowedMimes - allowed MIME types
  * @param maxSizeMB - max file size in megabytes
  */

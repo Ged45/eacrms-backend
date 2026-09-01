@@ -11,8 +11,12 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
+        url: "http://localhost:5000/api/v1",
+        description: "Local development server",
+      },
+      {
         url: "http://196.189.239.105:5000/api/v1",
-        description: "production server",
+        description: "Production server",
       },
     ],
 
@@ -2747,8 +2751,14 @@ const options: swaggerJsdoc.Options = {
       },
     },
   },
-  // No external files needed — all paths are inlined above
-  apis: [],
+  apis: [
+    "./src/routes/**/*.ts",
+    "./src/modules/**/*.ts",
+    "./dist/routes/**/*.js",
+    "./dist/modules/**/*.js",
+    "./dist/src/routes/**/*.js",
+    "./dist/src/modules/**/*.js",
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

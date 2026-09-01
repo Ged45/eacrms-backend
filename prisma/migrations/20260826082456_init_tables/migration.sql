@@ -1,4 +1,4 @@
--- CreateTable
+-- Reconcile schema objects that were applied to the development database.
 CREATE TABLE "AthleteSport" (
     "id" TEXT NOT NULL,
     "athleteId" TEXT NOT NULL,
@@ -8,17 +8,14 @@ CREATE TABLE "AthleteSport" (
     CONSTRAINT "AthleteSport_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "AthleteSport_athleteId_sportId_key" ON "AthleteSport"("athleteId", "sportId");
-
--- CreateIndex
 CREATE INDEX "AthleteSport_athleteId_idx" ON "AthleteSport"("athleteId");
-
--- CreateIndex
 CREATE INDEX "AthleteSport_sportId_idx" ON "AthleteSport"("sportId");
 
--- AddForeignKey
 ALTER TABLE "AthleteSport" ADD CONSTRAINT "AthleteSport_athleteId_fkey" FOREIGN KEY ("athleteId") REFERENCES "Athlete"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "AthleteSport" ADD CONSTRAINT "AthleteSport_sportId_fkey" FOREIGN KEY ("sportId") REFERENCES "Sport"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "Club" ALTER COLUMN "registrationNumber" DROP NOT NULL;
+ALTER TABLE "Coach" ALTER COLUMN "updatedAt" DROP DEFAULT;
+ALTER TABLE "FaydaVerification" ALTER COLUMN "updatedAt" DROP DEFAULT;
+ALTER TABLE "UserVerification" ALTER COLUMN "updatedAt" DROP DEFAULT;
