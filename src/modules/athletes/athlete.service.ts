@@ -6,6 +6,7 @@ import { athleteRepository } from "./athlete.repository";
 import { AthleteRegistrationInput, CreateAthleteDTO } from "./dto/create-athlete.dto";
 
 import { auditService } from "../audit/audit.service";
+import { verificationService } from "../verification/verification.service";
 import { AuditActions } from "../../constants/audit-actions";
 
 import { ConflictError } from "../../errors/ConflictError";
@@ -152,6 +153,11 @@ export class AthleteService {
       },
     });
 
+    // ── Initiate email / phone verification ───────────────────────────────
+    const verification = athlete.user.email
+      ? await verificationService.initiateEmailVerification(athlete.user.id, athlete.user.email)
+      : await verificationService.initiatePhoneVerification(athlete.user.id, athlete.user.phoneNumber!);
+
     // ── Mobile contract response ──────────────────────────────────────────
     return {
       message:
@@ -163,6 +169,7 @@ export class AthleteService {
         status: athlete.status,
         createdAt: athlete.createdAt,
       },
+      verification,
     };
   }
 
