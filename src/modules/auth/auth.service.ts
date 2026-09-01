@@ -22,6 +22,10 @@ import { buildLoginResponse } from "../../utils/auth-contract";
 
 import { AuditActions } from "../../constants/audit-actions";
 import { normalizePhoneNumber } from "../../utils/phone";
+import { NotFoundError } from "../../errors/NotFoundError";
+import { UnauthorizedError } from "../../errors/UnauthorizedError";
+import { ConflictError } from "../../errors/ConflictError";
+import { BadRequestError } from "../../errors/BadRequestError";
 
 const SALT_ROUNDS = 12;
 
@@ -50,7 +54,11 @@ export const authService = {
         : null;
 
     if (existingUser) {
-      throw new Error("Email or phone number already exists.");
+      throw new ConflictError("Email or phone number already exists.", {
+        code: "USER_CONFLICT",
+        entity: "User",
+        field: data.email ? "email" : "phoneNumber",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(
@@ -102,7 +110,10 @@ export const authService = {
       : await authRepository.findUserByPhone(identifier);
 
     if (!user) {
-      throw new Error("Invalid email or password.");
+      throw new UnauthorizedError("Invalid email or password.", {
+        code: "INVALID_CREDENTIALS",
+        entity: "User",
+      });
     }
 
     const passwordMatches = await bcrypt.compare(
@@ -111,12 +122,20 @@ export const authService = {
     );
 
     if (!passwordMatches) {
-      throw new Error("Invalid email or password.");
+      throw new UnauthorizedError("Invalid email or password.", {
+        code: "INVALID_CREDENTIALS",
+        entity: "User",
+      });
     }
 
     if (user.status !== UserStatus.ACTIVE) {
-      throw new Error(
-        "Your account is not active. Please verify your registered contact method."
+      throw new UnauthorizedError(
+        "Your account is not active. Please verify your registered contact method.",
+        {
+          code: "ACCOUNT_INACTIVE",
+          entity: "User",
+          field: "status",
+        }
       );
     }
 
@@ -180,28 +199,44 @@ export const authService = {
     try {
       payload = verifyRefreshToken(refreshToken);
     } catch {
-      throw new Error("Invalid or expired refresh token.");
+      throw new UnauthorizedError("Invalid or expired refresh token.", {
+        code: "INVALID_REFRESH_TOKEN",
+        entity: "Token",
+      });
     }
 
     // 2. Check if token exists in Redis (not revoked)
     const storedUserId = await getRefreshToken(refreshToken);
     if (!storedUserId) {
-      throw new Error("Refresh token has been revoked or expired.");
+      throw new UnauthorizedError("Refresh token has been revoked or expired.", {
+        code: "REFRESH_TOKEN_REVOKED",
+        entity: "Token",
+      });
     }
 
     // 3. Verify the userId matches
     if (storedUserId !== payload.userId) {
-      throw new Error("Refresh token mismatch.");
+      throw new UnauthorizedError("Refresh token mismatch.", {
+        code: "REFRESH_TOKEN_MISMATCH",
+        entity: "Token",
+      });
     }
 
     // 4. Fetch user to get current roles
     const user = await authRepository.findUserById(payload.userId);
     if (!user) {
-      throw new Error("User not found.");
+      throw new NotFoundError("User not found.", {
+        code: "USER_NOT_FOUND",
+        entity: "User",
+      });
     }
 
     if (user.status !== UserStatus.ACTIVE) {
-      throw new Error("User account is not active.");
+      throw new UnauthorizedError("User account is not active.", {
+        code: "ACCOUNT_INACTIVE",
+        entity: "User",
+        field: "status",
+      });
     }
 
     // 5. Revoke old refresh token (rotation)
@@ -266,7 +301,10 @@ export const authService = {
     );
 
     if (!user) {
-      throw new Error("User not found.");
+      throw new NotFoundError("User not found.", {
+        code: "USER_NOT_FOUND",
+        entity: "User",
+      });
     }
 
     return {

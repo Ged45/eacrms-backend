@@ -1,6 +1,9 @@
 import Redis from "ioredis";
 
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+let redisLastErrorLog = 0;
+
+const redis = new Redis(REDIS_URL, {
   maxRetriesPerRequest: 3,
   retryStrategy(times) {
     const delay = Math.min(times * 200, 2000);
@@ -10,11 +13,17 @@ const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
 });
 
 redis.on("error", (err) => {
-  console.error("Redis connection error:", err.message);
+  // Throttle error logging — at most once per 30 seconds
+  const now = Date.now();
+  if (now - redisLastErrorLog > 30_000) {
+    redisLastErrorLog = now;
+    console.error(`⚠️  Redis connection error (${REDIS_URL}):`, err.message);
+  }
 });
 
 redis.on("connect", () => {
   console.log("✅ Redis connected");
+  redisLastErrorLog = 0;
 });
 
 /**

@@ -39,7 +39,7 @@ export const eventService = {
    */
   async getDetail(id: string) {
     const event = await eventRepository.findDetailById(id);
-    if (!event) throw new NotFoundError("Event not found.");
+    if (!event) throw new NotFoundError("Event not found.", { code: "EVENT_NOT_FOUND", entity: "Event" });
 
     const now = new Date();
     const schedule = (event.schedule as any[]) ?? [];
@@ -70,14 +70,14 @@ export const eventService = {
 
   async findById(id: string) {
     const event = await eventRepository.findById(id);
-    if (!event) throw new NotFoundError("Event not found.");
+    if (!event) throw new NotFoundError("Event not found.", { code: "EVENT_NOT_FOUND", entity: "Event" });
     return event;
   },
 
   async submit(id: string, userId: string, metadata?: Metadata) {
     const event = await this.findById(id);
     if (event.createdById !== userId) {
-      throw new ForbiddenError("Only the event creator can submit this event for approval.");
+      throw new ForbiddenError("Only the event creator can submit this event for approval.", { code: "EVENT_NOT_CREATOR", entity: "Event" });
     }
     return this.changeStatus(id, EventStatus.DRAFT, EventStatus.PENDING_APPROVAL, userId, undefined, AuditActions.SUBMIT_EVENT_FOR_APPROVAL, metadata);
   },
@@ -92,17 +92,17 @@ export const eventService = {
 
   async overrideStatus(id: string, userId: string, status: EventStatus, reason: string, metadata?: Metadata) {
     const event = await this.findById(id);
-    if (event.status === status) throw new BadRequestError("Event already has this status.");
+    if (event.status === status) throw new BadRequestError("Event already has this status.", { code: "EVENT_STATUS_DUPLICATE", entity: "Event", field: "status" });
     return this.changeStatus(id, event.status, status, userId, reason, AuditActions.OVERRIDE_EVENT_STATUS, metadata, true);
   },
 
   async changeStatus(id: string, from: EventStatus, to: EventStatus, userId: string, reason: string | undefined, action: string, metadata?: Metadata, isOverride = false) {
     const event = await this.findById(id);
-    if (event.status !== from) throw new BadRequestError(`Event must be ${from} before it can be changed to ${to}.`);
-    if (!isOverride && !validTransitions[from].includes(to)) throw new BadRequestError(`Invalid event status transition from ${from} to ${to}.`);
+    if (event.status !== from) throw new BadRequestError(`Event must be ${from} before it can be changed to ${to}.`, { code: "EVENT_STATUS_MISMATCH", entity: "Event", field: "status" });
+    if (!isOverride && !validTransitions[from].includes(to)) throw new BadRequestError(`Invalid event status transition from ${from} to ${to}.`, { code: "EVENT_INVALID_TRANSITION", entity: "Event", field: "status" });
 
     const updated = await eventRepository.transition(id, from, to, userId, reason);
-    if (!updated) throw new BadRequestError("The event status changed. Refresh and try again.");
+    if (!updated) throw new BadRequestError("The event status changed. Refresh and try again.", { code: "EVENT_STATUS_CONFLICT", entity: "Event", field: "status" });
 
     await auditService.log({ userId, action, entity: "Event", entityId: id, details: { previousStatus: from, newStatus: to, reason }, ...metadata });
     return updated;

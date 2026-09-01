@@ -63,11 +63,10 @@ export const faydaService = {
       details: { nin },
     });
 
-    const exposeOtp = process.env.NODE_ENV !== "production" || process.env.EXPOSE_OTP === "true";
     return {
       verificationId: verification.id,
       message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-      ...(exposeOtp && { otp }),
+      otp,
     };
   },
 
@@ -117,11 +116,10 @@ export const faydaService = {
       details: { nin },
     });
 
-    const exposeOtp = process.env.NODE_ENV !== "production" || process.env.EXPOSE_OTP === "true";
     return {
       verificationId: verification.id,
       message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-      ...(exposeOtp && { otp }),
+      otp,
     };
   },
 
@@ -149,11 +147,10 @@ export const faydaService = {
       details: { nin },
     });
 
-    const exposeOtp = process.env.NODE_ENV !== "production" || process.env.EXPOSE_OTP === "true";
     return {
       verificationId: verification.id,
       message: `OTP sent to the phone number registered with NIN ${nin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-      ...(exposeOtp && { otp }),
+      otp,
     };
   },
 

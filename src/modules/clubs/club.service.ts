@@ -11,6 +11,9 @@ import { auditService } from "../audit/audit.service";
 import { AuditActions } from "../../constants/audit-actions";
 import { cacheGet, cacheInvalidate } from "../../lib/redis";
 import { normalizePhoneNumber } from "../../utils/phone";
+import { NotFoundError } from "../../errors/NotFoundError";
+import { ConflictError } from "../../errors/ConflictError";
+import { BadRequestError } from "../../errors/BadRequestError";
 
 const SALT_ROUNDS = 12;
 
@@ -33,7 +36,7 @@ export const clubService = {
     const existingName = await clubRepository.findByName(data.name);
 
     if (existingName) {
-      throw new Error("Club name already exists.");
+      throw new ConflictError("Club name already exists.", { code: "CLUB_NAME_CONFLICT", entity: "Club", field: "name" });
     }
 
     // Check duplicate email
@@ -41,7 +44,7 @@ export const clubService = {
       const existingEmail = await clubRepository.findByEmail(data.email);
 
       if (existingEmail) {
-        throw new Error("Club email already exists.");
+        throw new ConflictError("Club email already exists.", { code: "CLUB_EMAIL_CONFLICT", entity: "Club", field: "email" });
       }
     }
 
@@ -52,7 +55,7 @@ export const clubService = {
       );
 
       if (existingLicense) {
-        throw new Error("License number already exists.");
+        throw new ConflictError("License number already exists.", { code: "LICENSE_CONFLICT", entity: "Club", field: "licenseNumber" });
       }
     }
 
@@ -96,20 +99,20 @@ export const clubService = {
         : null;
 
     if (existingUser) {
-      throw new Error("Email or phone number already exists.");
+      throw new ConflictError("Email or phone number already exists.", { code: "USER_CONFLICT", entity: "User", field: data.email ? "email" : "phoneNumber" });
     }
 
     // Check duplicate club name
     const existingClubName = await clubRepository.findByName(data.clubName);
     if (existingClubName) {
-      throw new Error("Club name already exists.");
+      throw new ConflictError("Club name already exists.", { code: "CLUB_NAME_CONFLICT", entity: "Club", field: "name" });
     }
 
     // Check duplicate club email
     if (data.clubEmail) {
       const existingClubEmail = await clubRepository.findByEmail(data.clubEmail);
       if (existingClubEmail) {
-        throw new Error("Club email already exists.");
+        throw new ConflictError("Club email already exists.", { code: "CLUB_EMAIL_CONFLICT", entity: "Club", field: "email" });
       }
     }
 
@@ -117,7 +120,7 @@ export const clubService = {
     if (data.licenseNumber) {
       const existingLicense = await clubRepository.findByLicense(data.licenseNumber);
       if (existingLicense) {
-        throw new Error("License number already exists.");
+        throw new ConflictError("License number already exists.", { code: "LICENSE_CONFLICT", entity: "Club", field: "licenseNumber" });
       }
     }
 
@@ -174,7 +177,7 @@ export const clubService = {
     const club = await clubRepository.findById(id);
 
     if (!club) {
-      throw new Error("Club not found.");
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
     }
 
     return club;
@@ -204,7 +207,7 @@ export const clubService = {
     const cacheKey = `clubs:public:detail:${id}`;
     const club = await cacheGet(cacheKey, 300, () => clubRepository.findById(id));
     if (!club) {
-      throw new Error("Club not found.");
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
     }
     return club;
   },
@@ -249,14 +252,14 @@ export const clubService = {
     const club = await clubRepository.findById(id);
 
     if (!club) {
-      throw new Error("Club not found.");
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
     }
 
     if (
       club.verificationStatus ===
       ClubVerificationStatus.VERIFIED
     ) {
-      throw new Error("Club is already verified.");
+      throw new BadRequestError("Club is already verified.", { code: "CLUB_ALREADY_VERIFIED", entity: "Club", field: "verificationStatus" });
     }
 
     const updatedClub = await clubRepository.approve(
@@ -295,14 +298,14 @@ export const clubService = {
     const club = await clubRepository.findById(id);
 
     if (!club) {
-      throw new Error("Club not found.");
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
     }
 
     if (
       club.verificationStatus ===
       ClubVerificationStatus.REJECTED
     ) {
-      throw new Error("Club is already rejected.");
+      throw new BadRequestError("Club is already rejected.", { code: "CLUB_ALREADY_REJECTED", entity: "Club", field: "verificationStatus" });
     }
 
     const updatedClub = await clubRepository.reject(
@@ -341,14 +344,14 @@ export const clubService = {
     const club = await clubRepository.findById(id);
 
     if (!club) {
-      throw new Error("Club not found.");
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
     }
 
     if (
       club.verificationStatus ===
       ClubVerificationStatus.SUSPENDED
     ) {
-      throw new Error("Club is already suspended.");
+      throw new BadRequestError("Club is already suspended.", { code: "CLUB_ALREADY_SUSPENDED", entity: "Club", field: "verificationStatus" });
     }
 
     const updatedClub = await clubRepository.suspend(id);
@@ -380,7 +383,7 @@ export const clubService = {
     const club = await clubRepository.findById(id);
 
     if (!club) {
-      throw new Error("Club not found.");
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
     }
 
     return clubRepository.delete(id);

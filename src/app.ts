@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 
@@ -9,7 +10,55 @@ import { swaggerSpec } from "./docs/swagger";
 
 const app = express();
 
-app.use(express.json());
+// CORS — allow configured origins or fall back to all
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
+  : [];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests with no origin (curl, server-to-server, mobile)
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} is not allowed by CORS`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["X-Total-Count"],
+    maxAge: 86400,
+  })
+);
+
+// Lenient JSON body parser — tolerates trailing commas, a common frontend mistake
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const contentType = req.headers["content-type"];
+  if (!contentType?.includes("application/json")) {
+    next();
+    return;
+  }
+
+  const chunks: Buffer[] = [];
+  req.on("data", (chunk: Buffer) => chunks.push(chunk));
+  req.on("end", () => {
+    let raw = Buffer.concat(chunks).toString("utf8");
+    // Strip trailing commas before } or ] — common in JS object literals
+    raw = raw.replace(/,\s*([}\]])/g, "$1");
+    try {
+      req.body = JSON.parse(raw);
+    } catch {
+      res.status(400).json({
+        success: false,
+        message: "Invalid JSON in request body.",
+      });
+      return;
+    }
+    next();
+  });
+});
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.resolve("uploads")));
@@ -45,10 +94,17 @@ app.get("/", (_req, res) => {
 // Global error handler
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof AppError) {
-        res.status(err.statusCode).json({
+        const body: Record<string, unknown> = {
             success: false,
             message: err.message,
-        });
+            error: {
+                code: err.code,
+                status: err.statusCode,
+            },
+        };
+        if (err.entity) (body.error as Record<string, unknown>).entity = err.entity;
+        if (err.field) (body.error as Record<string, unknown>).field = err.field;
+        res.status(err.statusCode).json(body);
         return;
     }
 

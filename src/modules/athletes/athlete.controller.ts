@@ -20,7 +20,10 @@ export class AthleteController {
     return res.status(201).json({
       success: true,
       message: result.message,
-      data: result.athlete,
+      data: {
+        ...result.athlete,
+        verification: result.verification,
+      },
     });
   });
 
@@ -36,7 +39,10 @@ export class AthleteController {
     return res.status(201).json({
       success: true,
       message: result.message,
-      data: result.athlete,
+      data: {
+        ...result.athlete,
+        verification: result.verification,
+      },
     });
   });
 

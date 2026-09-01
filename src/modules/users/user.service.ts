@@ -7,8 +7,8 @@ import { AuditActions } from "../../constants/audit-actions";
 export const userService = {
   async activate(userId: string, adminId: string) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError("User not found.");
-    if (user.status === "ACTIVE") throw new BadRequestError("User is already active.");
+    if (!user) throw new NotFoundError("User not found.", { code: "USER_NOT_FOUND", entity: "User" });
+    if (user.status === "ACTIVE") throw new BadRequestError("User is already active.", { code: "USER_ALREADY_ACTIVE", entity: "User", field: "status" });
 
     const updated = await prisma.user.update({
       where: { id: userId },
@@ -28,8 +28,8 @@ export const userService = {
 
   async deactivate(userId: string, adminId: string) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError("User not found.");
-    if (user.status !== "ACTIVE") throw new BadRequestError("User is not active.");
+    if (!user) throw new NotFoundError("User not found.", { code: "USER_NOT_FOUND", entity: "User" });
+    if (user.status !== "ACTIVE") throw new BadRequestError("User is not active.", { code: "USER_NOT_ACTIVE", entity: "User", field: "status" });
 
     const updated = await prisma.user.update({
       where: { id: userId },
@@ -53,11 +53,11 @@ export const userService = {
       select: { id: true, email: true, firstName: true, lastName: true },
     });
 
-    if (!user) throw new NotFoundError("User not found.");
+    if (!user) throw new NotFoundError("User not found.", { code: "USER_NOT_FOUND", entity: "User" });
 
     // Prevent deleting yourself
     if (userId === adminId) {
-      throw new BadRequestError("You cannot delete your own account.");
+      throw new BadRequestError("You cannot delete your own account.", { code: "SELF_DELETE_FORBIDDEN", entity: "User" });
     }
 
     // Log before deleting (cascade will remove the user's own audit logs)
