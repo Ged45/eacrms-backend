@@ -4,6 +4,8 @@ import { authService } from "./auth.service";
 import {
   LoginSchema,
   RegisterSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
 } from "./auth.validation";
 
 export const authController = {
@@ -152,6 +154,74 @@ export const authController = {
       const { refreshToken } = req.body;
 
       const result = await authService.logout(userId, refreshToken);
+
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * ----------------------------------------
+   * Forgot Password
+   * ----------------------------------------
+   */
+  async forgotPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const validation = ForgotPasswordSchema.safeParse(req.body);
+
+      if (!validation.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed.",
+          errors: validation.error.flatten().fieldErrors,
+        });
+      }
+
+      const result = await authService.forgotPassword(validation.data.identifier);
+
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * ----------------------------------------
+   * Reset Password
+   * ----------------------------------------
+   */
+  async resetPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const validation = ResetPasswordSchema.safeParse(req.body);
+
+      if (!validation.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed.",
+          errors: validation.error.flatten().fieldErrors,
+        });
+      }
+
+      const result = await authService.resetPassword(
+        validation.data.identifier,
+        validation.data.code,
+        validation.data.newPassword
+      );
 
       return res.status(200).json({
         success: true,
