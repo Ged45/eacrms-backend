@@ -54,10 +54,9 @@ services:
       # Resend — email verification
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
-      # Africa's Talking — SMS/phone OTP
-      AT_USERNAME: ${AT_USERNAME:-sandbox}
-      AT_API_KEY: ${AT_API_KEY:-}
-      AT_SENDER_ID: ${AT_SENDER_ID:-EACRMS}
+      # AfroMessage — SMS/phone OTP
+      AFRO_API_KEY: ${AFRO_API_KEY:-}
+      AFRO_SENDER_ID: ${AFRO_SENDER_ID:-}
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres:

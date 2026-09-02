@@ -1,5 +1,4 @@
 import { BrevoClient } from "@getbrevo/brevo";
-import AfricasTalking from "africastalking";
 import { hasPostmark, sendViaPostmark } from "../../lib/postmark";
 import { normalizePhoneNumber } from "../../utils/phone";
 
@@ -15,11 +14,16 @@ function getBrevoClient(): BrevoClient | null {
   return new BrevoClient({ apiKey: key });
 }
 
-function getAT() {
-  const apiKey   = process.env.AT_API_KEY;
-  const username = process.env.AT_USERNAME;
-  if (!apiKey || !username) return null;
-  return AfricasTalking({ apiKey, username });
+/**
+ * AfroMessage SMS API base URL.
+ */
+const AFRO_API_BASE = "https://api.afromessage.com/api";
+
+function getAfroConfig() {
+  const apiKey  = process.env.AFRO_API_KEY;
+  const senderId = process.env.AFRO_SENDER_ID;
+  if (!apiKey || !senderId) return null;
+  return { apiKey, senderId };
 }
 
 // ─── Email HTML template ──────────────────────────────────────────────────────
@@ -101,14 +105,14 @@ export const notificationProvider = {
   },
 
   /**
-   * Send phone OTP via Africa's Talking.
-   * Falls back to console log if AT credentials are not set.
+   * Send phone OTP via AfroMessage.
+   * Falls back to console log if AfroMessage credentials are not set.
    */
   async sendPhoneOtp(phoneNumber: string, otp: string): Promise<void> {
     const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
-    const at = getAT();
+    const afro = getAfroConfig();
 
-    if (!at) {
+    if (!afro) {
       // Fallback — development mode
       console.log("─────────────────────────────────────────");
       console.log("[SMS] To:      ", normalizedPhoneNumber);
@@ -118,18 +122,31 @@ export const notificationProvider = {
       return;
     }
 
-    const senderId = process.env.AT_SENDER_ID ?? "EACRMS";
+    const message = `Your EACRMS verification OTP is: ${otp}. Valid for 10 minutes. Do not share this code.`;
 
     try {
-      const result = await at.SMS.send({
-        to:      [normalizedPhoneNumber],
-        message: `Your EACRMS verification OTP is: ${otp}. Valid for 10 minutes. Do not share this code.`,
-        from:    senderId,
+      const params = new URLSearchParams({
+        apiKey:  afro.apiKey,
+        senderId: afro.senderId,
+        to:       normalizedPhoneNumber,
+        message,
       });
 
-      console.log(`[SMS] OTP sent to ${normalizedPhoneNumber}:`, JSON.stringify(result));
+      const response = await fetch(`${AFRO_API_BASE}/sendsms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.status === "error") {
+        throw new Error(data.message ?? `HTTP ${response.status}`);
+      }
+
+      console.log(`[SMS] OTP sent to ${normalizedPhoneNumber} via AfroMessage`);
     } catch (err) {
-      console.error("[SMS] Africa's Talking error:", err);
+      console.error("[SMS] AfroMessage error:", err);
       throw new Error(`Failed to send SMS OTP: ${err}`);
     }
   },

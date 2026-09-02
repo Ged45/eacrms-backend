@@ -1,7 +1,7 @@
 /**
  * Mock email and SMS senders.
  * In production replace with real providers
- * (e.g. SendGrid for email, Twilio/AfricasTalking for SMS).
+ * (e.g. SendGrid for email, Twilio/AfroMessage for SMS).
  */
 export const notificationMock = {
   async sendEmailVerification(
