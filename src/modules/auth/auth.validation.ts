@@ -45,5 +45,27 @@ export const LoginSchema = z.object({
   password: data.password,
 }));
 
+export const ForgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Invalid email address").optional(),
+  phoneNumber: z.string().trim().min(7, "Invalid phone number").optional(),
+  identifier: z.string().trim().min(1, "Email or phone number is required.").optional(),
+}).refine((data) => data.identifier || data.email || data.phoneNumber, {
+  message: "Email or phone number is required.",
+  path: ["identifier"],
+}).transform((data) => ({
+  identifier: data.identifier ?? data.email ?? data.phoneNumber!,
+}));
+
+export const ResetPasswordSchema = z.object({
+  identifier: z.string().trim().min(1, "Email or phone number is required."),
+  code: z.string().length(6, "Verification code must be 6 digits"),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password is too long"),
+});
+
 export type RegisterDTO = z.infer<typeof RegisterSchema>;
 export type LoginDTO = z.infer<typeof LoginSchema>;
+export type ForgotPasswordDTO = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordDTO = z.infer<typeof ResetPasswordSchema>;
