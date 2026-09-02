@@ -263,6 +263,57 @@ export const verificationService = {
   },
 
   /**
+   * Initiate password reset — sends a code to email or phone.
+   * Uses a special type "PASSWORD_RESET" to differentiate from account verification.
+   */
+  async initiatePasswordReset(userId: string, destination: string, type: "EMAIL" | "PHONE") {
+    // Expire any previous password reset codes
+    await verificationRepository.expirePrevious(userId, "PASSWORD_RESET" as any);
+
+    const code = generateCode(6);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await verificationRepository.create({
+      userId,
+      type: "PASSWORD_RESET" as any,
+      code,
+      expiresAt,
+    });
+
+    if (type === "EMAIL") {
+      await notificationProvider.sendPasswordResetEmail(destination, code);
+      return { message: `Password reset code sent to ${destination}. Valid for 1 hour.` };
+    } else {
+      await notificationProvider.sendPasswordResetSms(destination, code);
+      return { message: `Password reset code sent to ${destination}. Valid for 1 hour.` };
+    }
+  },
+
+  /**
+   * Verify password reset code.
+   */
+  async verifyPasswordReset(userId: string, code: string): Promise<boolean> {
+    const record = await verificationRepository.findLatestByUserAndType(
+      userId,
+      "PASSWORD_RESET" as any
+    );
+
+    if (!record) return false;
+
+    if (record.status === "EXPIRED" || record.expiresAt < new Date()) {
+      await verificationRepository.markExpired(record.id);
+      return false;
+    }
+
+    if (record.status === "VERIFIED") return false;
+
+    if (record.code !== code) return false;
+
+    await verificationRepository.markVerified(record.id);
+    return true;
+  },
+
+  /**
    * Get verification status for a user.
    */
   async getStatus(userId: string) {
