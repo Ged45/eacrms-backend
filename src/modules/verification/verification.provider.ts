@@ -21,8 +21,8 @@ const AFRO_API_BASE = "https://api.afromessage.com/api";
 
 function getAfroConfig() {
   const apiKey  = process.env.AFRO_API_KEY;
-  const senderId = process.env.AFRO_SENDER_ID;
-  if (!apiKey || !senderId) return null;
+  const senderId = process.env.AFRO_SENDER_ID || undefined;
+  if (!apiKey) return null;
   return { apiKey, senderId };
 }
 
@@ -157,10 +157,10 @@ export const notificationProvider = {
     try {
       const params = new URLSearchParams({
         apiKey:  afro.apiKey,
-        senderId: afro.senderId,
         to:       normalizedPhoneNumber,
         message,
       });
+      if (afro.senderId) params.set("senderId", afro.senderId);
 
       const response = await fetch(`${AFRO_API_BASE}/sendsms`, {
         method: "POST",
@@ -245,10 +245,10 @@ export const notificationProvider = {
     try {
       const params = new URLSearchParams({
         apiKey:  afro.apiKey,
-        senderId: afro.senderId,
         to:       normalizedPhoneNumber,
         message,
       });
+      if (afro.senderId) params.set("senderId", afro.senderId);
 
       const response = await fetch(`${AFRO_API_BASE}/sendsms`, {
         method: "POST",
