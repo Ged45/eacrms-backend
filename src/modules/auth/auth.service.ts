@@ -17,6 +17,7 @@ import {
   storeRefreshToken,
   getRefreshToken,
   revokeRefreshToken,
+  revokeAllUserRefreshTokens,
 } from "../../lib/redis";
 import { buildLoginResponse } from "../../utils/auth-contract";
 
@@ -288,6 +289,76 @@ export const authService = {
     });
 
     return { message: "Logged out successfully." };
+  },
+
+  /**
+   * ----------------------------------------
+   * Forgot Password
+   * Sends a verification code to the user's email or phone
+   * ----------------------------------------
+   */
+  async forgotPassword(identifier: string) {
+    const isEmail = identifier.includes("@");
+    const user = isEmail
+      ? await authRepository.findUserByEmail(identifier.toLowerCase())
+      : await authRepository.findUserByPhone(normalizePhoneNumber(identifier));
+
+    if (!user) {
+      // Return success even if user not found to prevent email enumeration
+      return { message: "If an account exists with this identifier, a verification code has been sent." };
+    }
+
+    let verification;
+    if (user.email && isEmail) {
+      verification = await verificationService.initiatePasswordReset(user.id, user.email, "EMAIL");
+    } else if (user.phoneNumber) {
+      verification = await verificationService.initiatePasswordReset(user.id, user.phoneNumber, "PHONE");
+    } else {
+      return { message: "If an account exists with this identifier, a verification code has been sent." };
+    }
+
+    return { message: verification.message };
+  },
+
+  /**
+   * ----------------------------------------
+   * Reset Password
+   * Verifies the code and sets a new password
+   * ----------------------------------------
+   */
+  async resetPassword(identifier: string, code: string, newPassword: string) {
+    const isEmail = identifier.includes("@");
+    const user = isEmail
+      ? await authRepository.findUserByEmail(identifier.toLowerCase())
+      : await authRepository.findUserByPhone(normalizePhoneNumber(identifier));
+
+    if (!user) {
+      throw new NotFoundError("User not found.", { code: "USER_NOT_FOUND", entity: "User" });
+    }
+
+    // Verify the reset code
+    const verified = await verificationService.verifyPasswordReset(user.id, code);
+
+    if (!verified) {
+      throw new BadRequestError("Invalid or expired verification code.", { code: "INVALID_CODE", entity: "Verification" });
+    }
+
+    // Hash and update password
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await authRepository.updateUser(user.id, { password: hashedPassword });
+
+    // Revoke all refresh tokens for this user (force re-login)
+    await revokeAllUserRefreshTokens(user.id);
+
+    await auditService.log({
+      userId: user.id,
+      action: "PASSWORD_RESET",
+      entity: "USER",
+      entityId: user.id,
+      details: { method: isEmail ? "email" : "phone" },
+    });
+
+    return { message: "Password has been reset successfully. Please log in with your new password." };
   },
 
   /**
