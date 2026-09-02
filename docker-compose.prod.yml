@@ -51,9 +51,7 @@ services:
       POSTMARK_SENDER: ${POSTMARK_SENDER:-onboarding@postmarkapp.com}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
-      AT_USERNAME: ${AT_USERNAME:-sandbox}
-      AT_API_KEY: ${AT_API_KEY:-}
-      AT_SENDER_ID: ${AT_SENDER_ID:-EACRMS}
+      AFRO_API_KEY: ${AFRO_API_KEY:-}
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
