@@ -19,6 +19,29 @@ function getBrevoClient(): BrevoClient | null {
  */
 const AFRO_API_BASE = "https://api.afromessage.com/api";
 
+async function sendAfroSms(
+  afro: { apiKey: string; senderId?: string },
+  to: string,
+  message: string,
+): Promise<void> {
+  const qs = new URLSearchParams({ to, message });
+  if (afro.senderId) qs.set("sender", afro.senderId);
+
+  const response = await fetch(`${AFRO_API_BASE}/send?${qs.toString()}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${afro.apiKey}`,
+      Accept: "application/json",
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || data.status === "error") {
+    throw new Error(data.message ?? `HTTP ${response.status}`);
+  }
+}
+
 function getAfroConfig() {
   const apiKey  = process.env.AFRO_API_KEY;
   const senderId = process.env.AFRO_SENDER_ID || undefined;
@@ -155,25 +178,7 @@ export const notificationProvider = {
     const message = `Your EACRMS verification OTP is: ${otp}. Valid for 10 minutes. Do not share this code.`;
 
     try {
-      const params = new URLSearchParams({
-        apiKey:  afro.apiKey,
-        to:       normalizedPhoneNumber,
-        message,
-      });
-      if (afro.senderId) params.set("senderId", afro.senderId);
-
-      const response = await fetch(`${AFRO_API_BASE}/sendsms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.status === "error") {
-        throw new Error(data.message ?? `HTTP ${response.status}`);
-      }
-
+      await sendAfroSms(afro, normalizedPhoneNumber, message);
       console.log(`[SMS] OTP sent to ${normalizedPhoneNumber} via AfroMessage`);
     } catch (err) {
       console.error("[SMS] AfroMessage error:", err);
@@ -243,25 +248,7 @@ export const notificationProvider = {
     const message = `Your EACRMS password reset code is: ${code}. Valid for 1 hour. Do not share this code.`;
 
     try {
-      const params = new URLSearchParams({
-        apiKey:  afro.apiKey,
-        to:       normalizedPhoneNumber,
-        message,
-      });
-      if (afro.senderId) params.set("senderId", afro.senderId);
-
-      const response = await fetch(`${AFRO_API_BASE}/sendsms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.status === "error") {
-        throw new Error(data.message ?? `HTTP ${response.status}`);
-      }
-
+      await sendAfroSms(afro, normalizedPhoneNumber, message);
       console.log(`[SMS] Password reset code sent to ${normalizedPhoneNumber} via AfroMessage`);
     } catch (err) {
       console.error("[SMS] AfroMessage error:", err);
