@@ -181,9 +181,11 @@ export class AthleteRepository {
 
   /**
    * List Athletes
+   * @param clubId If provided, only return athletes from this club
    */
-  async findAll() {
+  async findAll(clubId?: string) {
     return prisma.athlete.findMany({
+      where: clubId ? { clubId } : undefined,
       include: {
         user: true,
         sport: true,
@@ -196,10 +198,14 @@ export class AthleteRepository {
 
   /**
    * Find athletes by status
+   * @param clubId If provided, only return athletes from this club
    */
-  async findByStatus(status: AthleteStatus) {
+  async findByStatus(status: AthleteStatus, clubId?: string) {
     return prisma.athlete.findMany({
-      where: { status },
+      where: {
+        status,
+        ...(clubId ? { clubId } : {}),
+      },
       include: {
         user: true,
         sport: true,
@@ -212,10 +218,12 @@ export class AthleteRepository {
 
   /**
    * Search athletes
+   * @param clubId If provided, only return athletes from this club
    */
-  async search(search: string) {
+  async search(search: string, clubId?: string) {
     return prisma.athlete.findMany({
       where: {
+        ...(clubId ? { clubId } : {}),
         OR: [
           { user: { firstName: { contains: search, mode: "insensitive" } } },
           { user: { lastName: { contains: search, mode: "insensitive" } } },

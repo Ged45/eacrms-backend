@@ -48,8 +48,8 @@ export const clubController = {
    * GET /api/v1/clubs
    * --------------------------------------------------------
    */
-  findAll: asyncHandler(async (_req: Request, res: Response) => {
-    const clubs = await clubService.findAll();
+  findAll: asyncHandler(async (req: Request, res: Response) => {
+    const clubs = await clubService.findAll(req.user.userId);
 
     res.status(200).json({
       success: true,
@@ -110,7 +110,7 @@ export const clubController = {
    * --------------------------------------------------------
    */
   findById: asyncHandler(async (req: Request, res: Response) => {
-    const club = await clubService.findById(req.params.id as string);
+    const club = await clubService.findById(req.params.id as string, req.user.userId);
 
     res.status(200).json({
       success: true,

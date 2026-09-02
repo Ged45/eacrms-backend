@@ -176,10 +176,13 @@ const rolePermissions: Record<string, string[]> = {
 
   CLUB_ADMIN: [
     "athlete:create",
+    "athlete:view",
     "athlete:update",
     "coach:create",
+    "coach:view",
     "coach:update",
     "competition:view",
+    "club:view",
   ],
 
   COACH: [

@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { clubRepository } from "./club.repository";
 import { authRepository } from "../auth/auth.repository";
 import { verificationService } from "../verification/verification.service";
+import { authorizationService } from "../authorizations/authorization.service";
 
 import { RegisterClubDTO, RegisterClubAdminDTO, ApproveClubDTO, RejectClubDTO } from "./club.types";
 
@@ -171,13 +172,25 @@ export const clubService = {
   /**
    * --------------------------------------------------
    * Get Club By ID
+   * For CLUB_ADMIN: only allows viewing their own club
    * --------------------------------------------------
    */
-  async findById(id: string) {
+  async findById(id: string, userId?: string) {
     const club = await clubRepository.findById(id);
 
     if (!club) {
       throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
+    }
+
+    // If userId is provided, check if CLUB_ADMIN is trying to access their own club
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        const adminClubId = await authorizationService.getClubIdForUser(userId);
+        if (adminClubId && adminClubId !== id) {
+          throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
+        }
+      }
     }
 
     return club;
@@ -215,9 +228,21 @@ export const clubService = {
   /**
    * --------------------------------------------------
    * Get All Clubs
+   * For CLUB_ADMIN: returns only their club
+   * For SUPER_ADMIN/FEDERATION_ADMIN: returns all clubs
    * --------------------------------------------------
    */
-  async findAll() {
+  async findAll(userId?: string) {
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        const clubId = await authorizationService.getClubIdForUser(userId);
+        if (clubId) {
+          const club = await clubRepository.findById(clubId);
+          return club ? [club] : [];
+        }
+      }
+    }
     return clubRepository.findAll();
   },
 

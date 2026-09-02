@@ -10,6 +10,8 @@ import { authenticate } from "../../middleware/auth.middleware";
 
 import { authorize } from "../../middleware/authorize.middleware";
 
+import { requireRole } from "../../middleware/requireRole.middleware";
+
 import { publicLimiter } from "../../middleware/rateLimit.middleware";
 
 const router = Router();
@@ -129,6 +131,7 @@ router.get(
 router.get(
     "/",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN", "COACH"),
     authorize("athlete:view"),
     athleteController.findAll
 );
@@ -136,6 +139,7 @@ router.get(
 router.get(
     "/search",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN", "COACH"),
     authorize("athlete:view"),
     athleteController.search
 );
@@ -143,6 +147,7 @@ router.get(
 router.get(
     "/status/:status",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN", "COACH"),
     authorize("athlete:view"),
     athleteController.findByStatus
 );
@@ -150,6 +155,7 @@ router.get(
 router.patch(
     "/:id/approve",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN"),
     authorize("athlete:update"),
     athleteController.approve
 );
@@ -157,6 +163,7 @@ router.patch(
 router.patch(
     "/:id/reject",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN"),
     authorize("athlete:update"),
     athleteController.reject
 );
@@ -164,6 +171,7 @@ router.patch(
 router.patch(
     "/:id/activate",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN"),
     authorize("athlete:update"),
     athleteController.activate
 );
@@ -171,6 +179,7 @@ router.patch(
 router.patch(
     "/:id/suspend",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN"),
     authorize("athlete:update"),
     athleteController.suspend
 );
@@ -178,6 +187,7 @@ router.patch(
 router.get(
     "/:id",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN", "CLUB_ADMIN", "COACH"),
     authorize("athlete:view"),
     athleteController.getById
 );
@@ -185,6 +195,7 @@ router.get(
 router.delete(
     "/:id",
     authenticate,
+    requireRole("SUPER_ADMIN", "FEDERATION_ADMIN"),
     authorize("athlete:delete"),
     athleteController.delete
 );

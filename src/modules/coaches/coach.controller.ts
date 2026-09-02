@@ -27,13 +27,13 @@ export class CoachController {
     return res.status(200).json({ success: true, data: coach });
   });
 
-  findAll = asyncHandler(async (_req: Request, res: Response) => {
-    const coaches = await coachService.findAll();
+  findAll = asyncHandler(async (req: Request, res: Response) => {
+    const coaches = await coachService.findAll(req.user.userId);
     return res.status(200).json({ success: true, data: coaches });
   });
 
   findByStatus = asyncHandler(async (req: Request, res: Response) => {
-    const coaches = await coachService.findByStatus(req.params.status as AthleteStatus);
+    const coaches = await coachService.findByStatus(req.params.status as AthleteStatus, req.user.userId);
     return res.status(200).json({ success: true, data: coaches });
   });
 

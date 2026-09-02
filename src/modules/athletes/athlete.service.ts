@@ -7,6 +7,7 @@ import { AthleteRegistrationInput, CreateAthleteDTO } from "./dto/create-athlete
 
 import { auditService } from "../audit/audit.service";
 import { verificationService } from "../verification/verification.service";
+import { authorizationService } from "../authorizations/authorization.service";
 import { AuditActions } from "../../constants/audit-actions";
 
 import { ConflictError } from "../../errors/ConflictError";
@@ -201,9 +202,17 @@ export class AthleteService {
 
   /**
    * List all athletes
+   * @param userId The requesting user's ID for club-scoping
    */
-  async findAll() {
-    const athletes = await athleteRepository.findAll();
+  async findAll(userId?: string) {
+    let clubId: string | undefined;
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        clubId = await authorizationService.getClubIdForUser(userId);
+      }
+    }
+    const athletes = await athleteRepository.findAll(clubId);
     return athletes.map((athlete) => {
       const { password, ...user } = athlete.user;
       return { ...athlete, user };
@@ -212,9 +221,17 @@ export class AthleteService {
 
   /**
    * Search athletes
+   * @param userId The requesting user's ID for club-scoping
    */
-  async search(search: string) {
-    const athletes = await athleteRepository.search(search);
+  async search(search: string, userId?: string) {
+    let clubId: string | undefined;
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        clubId = await authorizationService.getClubIdForUser(userId);
+      }
+    }
+    const athletes = await athleteRepository.search(search, clubId);
     return athletes.map((athlete) => {
       const { password, ...user } = athlete.user;
       return { ...athlete, user };
@@ -223,9 +240,17 @@ export class AthleteService {
 
   /**
    * Get athletes by status
+   * @param userId The requesting user's ID for club-scoping
    */
-  async findByStatus(status: AthleteStatus) {
-    const athletes = await athleteRepository.findByStatus(status);
+  async findByStatus(status: AthleteStatus, userId?: string) {
+    let clubId: string | undefined;
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        clubId = await authorizationService.getClubIdForUser(userId);
+      }
+    }
+    const athletes = await athleteRepository.findByStatus(status, clubId);
     return athletes.map((athlete) => {
       const { password, ...user } = athlete.user;
       return { ...athlete, user };

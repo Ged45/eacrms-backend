@@ -4,6 +4,7 @@ import { Request } from "express";
 import { coachRepository } from "./coach.repository";
 import { CreateCoachDTO } from "./dto/create-coach.dto";
 import { auditService } from "../audit/audit.service";
+import { authorizationService } from "../authorizations/authorization.service";
 import { AuditActions } from "../../constants/audit-actions";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
@@ -78,16 +79,38 @@ export class CoachService {
     return { ...coach, user };
   }
 
-  async findAll() {
-    const coaches = await coachRepository.findAll();
+  /**
+   * List all coaches
+   * @param userId The requesting user's ID for club-scoping
+   */
+  async findAll(userId?: string) {
+    let clubId: string | undefined;
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        clubId = await authorizationService.getClubIdForUser(userId);
+      }
+    }
+    const coaches = clubId ? await coachRepository.findByClub(clubId) : await coachRepository.findAll();
     return coaches.map((c) => {
       const { password, ...user } = c.user;
       return { ...c, user };
     });
   }
 
-  async findByStatus(status: AthleteStatus) {
-    const coaches = await coachRepository.findByStatus(status);
+  /**
+   * Get coaches by status
+   * @param userId The requesting user's ID for club-scoping
+   */
+  async findByStatus(status: AthleteStatus, userId?: string) {
+    let clubId: string | undefined;
+    if (userId) {
+      const userRoles = await authorizationService.getUserRoles(userId);
+      if (userRoles.includes("CLUB_ADMIN")) {
+        clubId = await authorizationService.getClubIdForUser(userId);
+      }
+    }
+    const coaches = clubId ? await coachRepository.findByClub(clubId) : await coachRepository.findByStatus(status);
     return coaches.map((c) => {
       const { password, ...user } = c.user;
       return { ...c, user };

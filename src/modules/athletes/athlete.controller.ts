@@ -76,8 +76,8 @@ export class AthleteController {
    * Get All Athletes
    * GET /api/v1/athletes
    */
-  findAll = asyncHandler(async (_req: Request, res: Response) => {
-    const athletes = await athleteService.findAll();
+  findAll = asyncHandler(async (req: Request, res: Response) => {
+    const athletes = await athleteService.findAll(req.user.userId);
 
     return res.status(200).json({
       success: true,
@@ -92,7 +92,7 @@ export class AthleteController {
   search = asyncHandler(async (req: Request, res: Response) => {
     const search = (req.query.search as string) || "";
 
-    const athletes = await athleteService.search(search);
+    const athletes = await athleteService.search(search, req.user.userId);
 
     return res.status(200).json({
       success: true,
@@ -106,7 +106,8 @@ export class AthleteController {
    */
   findByStatus = asyncHandler(async (req: Request, res: Response) => {
     const athletes = await athleteService.findByStatus(
-      req.params.status as AthleteStatus
+      req.params.status as AthleteStatus,
+      req.user.userId
     );
 
     return res.status(200).json({

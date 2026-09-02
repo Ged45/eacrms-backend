@@ -4,6 +4,7 @@ import { clubController } from "./club.controller";
 
 import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/authorize.middleware";
+import { requireRole } from "../../middleware/requireRole.middleware";
 import { validate } from "../../middleware/validate.middleware";
 import { publicLimiter } from "../../middleware/rateLimit.middleware";
 
@@ -62,6 +63,7 @@ router.post(
 router.get(
   "/",
   authenticate,
+  authorize("club:view"),
   clubController.findAll
 );
 
@@ -73,6 +75,7 @@ router.get(
 router.get(
   "/pending",
   authenticate,
+  requireRole("SUPER_ADMIN", "FEDERATION_ADMIN"),
   authorize("club:approve"),
   clubController.findPending
 );
@@ -80,12 +83,14 @@ router.get(
 router.get(
   "/:id",
   authenticate,
+  authorize("club:view"),
   clubController.findById
 );
 
 router.patch(
   "/:id/approve",
   authenticate,
+  requireRole("SUPER_ADMIN", "FEDERATION_ADMIN"),
   authorize("club:approve"),
   clubController.approve
 );
@@ -93,6 +98,7 @@ router.patch(
 router.patch(
   "/:id/reject",
   authenticate,
+  requireRole("SUPER_ADMIN", "FEDERATION_ADMIN"),
   authorize("club:approve"),
   validate(rejectClubSchema),
   clubController.reject
@@ -101,6 +107,7 @@ router.patch(
 router.patch(
   "/:id/suspend",
   authenticate,
+  requireRole("SUPER_ADMIN", "FEDERATION_ADMIN"),
   authorize("club:approve"),
   clubController.suspend
 );
@@ -108,6 +115,7 @@ router.patch(
 router.delete(
   "/:id",
   authenticate,
+  requireRole("SUPER_ADMIN", "FEDERATION_ADMIN"),
   authorize("club:delete"),
   clubController.delete
 );
