@@ -24,15 +24,17 @@ async function sendAfroSms(
   to: string,
   message: string,
 ): Promise<void> {
-  const qs = new URLSearchParams({ to, message });
-  if (afro.senderId) qs.set("sender", afro.senderId);
+  const body: Record<string, string> = { to, message };
+  if (afro.senderId) body.sender = afro.senderId;
 
-  const response = await fetch(`${AFRO_API_BASE}/send?${qs.toString()}`, {
-    method: "GET",
+  const response = await fetch(`${AFRO_API_BASE}/send`, {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${afro.apiKey}`,
+      "Content-Type": "application/json",
       Accept: "application/json",
     },
+    body: JSON.stringify(body),
   });
 
   const data = await response.json();
