@@ -125,6 +125,7 @@ enum EventRegistrationStatus {
 enum VerificationType {
   EMAIL
   PHONE
+  PASSWORD_RESET
 }
 
 enum VerificationStatus {

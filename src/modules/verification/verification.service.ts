@@ -268,14 +268,14 @@ export const verificationService = {
    */
   async initiatePasswordReset(userId: string, destination: string, type: "EMAIL" | "PHONE") {
     // Expire any previous password reset codes
-    await verificationRepository.expirePrevious(userId, "PASSWORD_RESET" as any);
+    await verificationRepository.expirePrevious(userId, "PASSWORD_RESET");
 
     const code = generateCode(6);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await verificationRepository.create({
       userId,
-      type: "PASSWORD_RESET" as any,
+      type: "PASSWORD_RESET",
       code,
       expiresAt,
     });
@@ -295,7 +295,7 @@ export const verificationService = {
   async verifyPasswordReset(userId: string, code: string): Promise<boolean> {
     const record = await verificationRepository.findLatestByUserAndType(
       userId,
-      "PASSWORD_RESET" as any
+      "PASSWORD_RESET"
     );
 
     if (!record) return false;
