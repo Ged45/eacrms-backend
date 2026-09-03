@@ -771,3 +771,167 @@ model GalleryCapture {
 
   @@index([galleryId])
 }
+
+// ─── Results & Event History ───────────────────────────────────────────────
+
+enum ResultCategory {
+  TRACK
+  FIELD
+  ROAD
+  CROSS_COUNTRY
+}
+
+enum ResultGender {
+  MEN
+  WOMEN
+  MIXED
+}
+
+enum LiveStatusType {
+  ERROR
+  WARNING
+  SUCCESS
+  INFO
+}
+
+model LiveEvent {
+  id                   String         @id @default(cuid())
+  title                String
+  venue                String
+  date                 DateTime
+  overallStatusLabel   String         @default("LIVE NOW")
+  overallStatusType    LiveStatusType @default(SUCCESS)
+  competitionCount     Int            @default(0)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  competitions         LiveCompetition[]
+
+  @@index([date])
+}
+
+model LiveCompetition {
+  id              String         @id @default(cuid())
+  liveEventId     String
+  liveEvent       LiveEvent      @relation(fields: [liveEventId], references: [id], onDelete: Cascade)
+  discipline      String
+  gender          ResultGender
+  category        ResultCategory
+  statusLabel     String         @default("In Progress")
+  statusType      LiveStatusType @default(SUCCESS)
+  elapsedTime     String
+  progressLabel   String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  leaderboard     LiveLeaderboardEntry[]
+
+  @@index([liveEventId])
+}
+
+model LiveLeaderboardEntry {
+  id                  String          @id @default(cuid())
+  competitionId       String
+  competition         LiveCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  pos                 String
+  name                String
+  bib                 String
+  club                String
+  time                String
+  diff                String          @default("--")
+  sortOrder           Int             @default(0)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([competitionId])
+}
+
+model Result {
+  id              String         @id @default(cuid())
+  eventTitle      String
+  discipline      String
+  date            DateTime
+  venue           String
+  category        ResultCategory
+  gender          ResultGender
+  isLive          Boolean        @default(false)
+  statusLabel     String         @default("Official Result")
+  statusType      LiveStatusType @default(SUCCESS)
+  totalFinishers  Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  allFinishers    ResultFinisher[]
+  teamRankings    TeamRanking[]
+
+  @@index([date])
+  @@index([category])
+  @@index([isLive])
+}
+
+model ResultFinisher {
+  id           String   @id @default(cuid())
+  resultId     String
+  result       Result   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  rank         String
+  name         String
+  performance  String
+  club         String
+  nationality  String?
+  notes        String?
+  athleteId    String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([resultId])
+  @@index([athleteId])
+}
+
+model TeamRanking {
+  id        String   @id @default(cuid())
+  resultId  String
+  result    Result   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  rank      String
+  clubName  String
+  score     String
+  notes     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resultId])
+}
+
+model NationalRecord {
+  id             String    @id @default(cuid())
+  event          String
+  record         String
+  athlete        String
+  date           DateTime
+  location       String
+  club           String?
+  previousRecord String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([event])
+}
+
+model PastSeason {
+  id            String    @id @default(cuid())
+  year          String
+  title         String
+  winnerClub    String
+  runnerUpClub  String?
+  location      String?
+  date          DateTime?
+  totalEvents   String?
+  topAthlete    String?
+  summary       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([year])
+}

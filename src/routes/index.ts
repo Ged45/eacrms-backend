@@ -16,6 +16,8 @@ import metaRoutes from "../modules/meta/meta.routes";
 import newsRoutes from "../modules/news/news.routes";
 import newsUploadRoutes from "../modules/news/news.upload.routes";
 import galleryRoutes from "../modules/gallery/gallery.routes";
+import resultRoutes from "../modules/results/result.routes";
+import historyRoutes from "../modules/history/history.routes";
 
 const router = Router();
 
@@ -50,5 +52,8 @@ router.use("/news/upload", newsUploadRoutes);
 
 router.use("/gallery", galleryRoutes);
 router.use("/media", galleryRoutes);
+
+router.use("/results", resultRoutes);
+router.use("/history", historyRoutes);
 
 export default router;

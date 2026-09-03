@@ -809,6 +809,93 @@ const options: swaggerJsdoc.Options = {
         },
       },
 
+      "/auth/forgot-password": {
+        post: {
+          tags: ["Auth"],
+          summary: "Forgot password",
+          description: "Sends a 6-digit verification code to the user's email or phone. Provide one of: identifier, email, or phoneNumber.",
+          security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    identifier: { type: "string", description: "Email or phone number (auto-resolved)", example: "user@example.com" },
+                    email:      { type: "string", format: "email", example: "user@example.com" },
+                    phoneNumber: { type: "string", example: "+251911234567" },
+                  },
+                  anyOf: [
+                    { required: ["identifier"] },
+                    { required: ["email"] },
+                    { required: ["phoneNumber"] },
+                  ],
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Verification code sent",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Verification code sent successfully." },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Validation failed or user not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/auth/reset-password": {
+        post: {
+          tags: ["Auth"],
+          summary: "Reset password",
+          description: "Resets the user's password using the 6-digit code sent via forgot-password.",
+          security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["identifier", "code", "newPassword"],
+                  properties: {
+                    identifier: { type: "string", description: "Email or phone number", example: "user@example.com" },
+                    code:       { type: "string", description: "6-digit verification code", example: "123456" },
+                    newPassword: { type: "string", description: "New password (min 8 characters)", example: "NewSecurePass123!" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Password reset successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean", example: true },
+                      message: { type: "string", example: "Password reset successfully." },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Invalid code or validation failed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+
       "/auth/verify/email": {
         post: {
           tags: ["Verification"],
@@ -2742,6 +2829,265 @@ const options: swaggerJsdoc.Options = {
             400: { description: "Wrong OTP / expired / max attempts", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "Verification not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             409: { description: "Already confirmed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+
+      // ── Results ────────────────────────────────────────────────────────────
+      "/results/live": {
+        get: {
+          tags: ["Results"],
+          summary: "Active live events list",
+          description: "Returns all currently live event containers for Tab 0.",
+          security: [],
+          responses: {
+            200: {
+              description: "List of live events",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      data: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            title: { type: "string", example: "Ethiopian National Championship 2026 — Day 2" },
+                            venue: { type: "string", example: "Addis Ababa Stadium" },
+                            date: { type: "string", example: "2026-08-30" },
+                            overallStatusLabel: { type: "string", example: "LIVE NOW" },
+                            overallStatusType: { type: "string", enum: ["error", "warning", "success"] },
+                            competitionCount: { type: "integer", example: 2 },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/results/live-event/{eventId}": {
+        get: {
+          tags: ["Results"],
+          summary: "Single live event details",
+          description: "Multi-competition live event details screen.",
+          security: [],
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Live event with competitions", content: { "application/json": { schema: { type: "object" } } } },
+            404: { description: "Live event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/results/live/{eventId}/competition/{compId}": {
+        get: {
+          tags: ["Results"],
+          summary: "Isolated live competition leaderboard",
+          description: "Single-competition live leaderboard.",
+          security: [],
+          parameters: [
+            { in: "path", name: "eventId", required: true, schema: { type: "string" } },
+            { in: "path", name: "compId", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Competition leaderboard", content: { "application/json": { schema: { type: "object" } } } },
+            404: { description: "Competition not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/results/live/{eventId}": {
+        get: {
+          tags: ["Results"],
+          summary: "Direct single-race live scoreboard",
+          description: "Deep-link endpoint for live scoreboard.",
+          security: [],
+          parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Live scoreboard", content: { "application/json": { schema: { type: "object" } } } },
+            404: { description: "Event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/results/published": {
+        get: {
+          tags: ["Results"],
+          summary: "Published completed results",
+          description: "Completed results list with top-3 preview for Tab 1.",
+          security: [],
+          parameters: [
+            { in: "query", name: "category", schema: { type: "string", enum: ["TRACK", "FIELD", "ROAD", "CROSS_COUNTRY"] } },
+            { in: "query", name: "search", schema: { type: "string" } },
+            { in: "query", name: "gender", schema: { type: "string", enum: ["MEN", "WOMEN"] } },
+            { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+            { in: "query", name: "limit", schema: { type: "integer", default: 20 } },
+          ],
+          responses: {
+            200: {
+              description: "Paginated results",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      data: { type: "array", items: { type: "object" } },
+                      pagination: { type: "object", properties: { page: { type: "integer" }, limit: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/results/{id}": {
+        get: {
+          tags: ["Results"],
+          summary: "Full result details",
+          description: "Official result details, ranking table, and optional user highlight.",
+          security: [],
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
+          responses: {
+            200: { description: "Result details", content: { "application/json": { schema: { type: "object" } } } },
+            404: { description: "Result not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/results/my-results": {
+        get: {
+          tags: ["Results"],
+          summary: "Athlete personal results",
+          description: "Logged-in athlete's personal race finishes for Tab 2.",
+          responses: {
+            200: { description: "Athlete results", content: { "application/json": { schema: { type: "object" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/results/my-club": {
+        get: {
+          tags: ["Results"],
+          summary: "Club admin results",
+          description: "Club team standings and athlete finishes for Tab 2.",
+          responses: {
+            200: { description: "Club results", content: { "application/json": { schema: { type: "object" } } } },
+            401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Club not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/results/notable": {
+        get: {
+          tags: ["Results"],
+          summary: "Notable results",
+          description: "Podium finishes (1–3) and record-breakers.",
+          security: [],
+          responses: {
+            200: {
+              description: "Notable results",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      totalNotableCount: { type: "integer" },
+                      data: { type: "array", items: { type: "object" } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // ── History ────────────────────────────────────────────────────────────
+      "/history/national-records": {
+        get: {
+          tags: ["History"],
+          summary: "National athletics records",
+          description: "All-time Ethiopian national athletics records.",
+          security: [],
+          responses: {
+            200: {
+              description: "Records list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      data: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            event: { type: "string", example: "Men 10,000m" },
+                            record: { type: "string", example: "26:17.53" },
+                            athlete: { type: "string", example: "Kenenisa Bekele" },
+                            date: { type: "string", example: "2005-06-26" },
+                            location: { type: "string", example: "Brussels, Belgium" },
+                            club: { type: "string", nullable: true },
+                            previousRecord: { type: "string", nullable: true },
+                            notes: { type: "string", nullable: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/history/past-seasons": {
+        get: {
+          tags: ["History"],
+          summary: "Past season archives",
+          description: "Historical championship season archives.",
+          security: [],
+          parameters: [
+            { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+            { in: "query", name: "limit", schema: { type: "integer", default: 20 } },
+          ],
+          responses: {
+            200: {
+              description: "Paginated season archives",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      data: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            year: { type: "string", example: "2025" },
+                            title: { type: "string" },
+                            winnerClub: { type: "string" },
+                            runnerUpClub: { type: "string", nullable: true },
+                            location: { type: "string", nullable: true },
+                            date: { type: "string", nullable: true },
+                            totalEvents: { type: "string", nullable: true },
+                            topAthlete: { type: "string", nullable: true },
+                            summary: { type: "string", nullable: true },
+                          },
+                        },
+                      },
+                      pagination: { type: "object", properties: { page: { type: "integer" }, limit: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } } },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
