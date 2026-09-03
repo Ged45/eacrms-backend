@@ -25,6 +25,13 @@ export interface CreateAthleteDTO {
     bloodType?: BloodType;
     registrationSource?: RegistrationSource;
     registeredById?: string;
+    /**
+     * Optional — which contact method to verify immediately after registration.
+     * "email" → sends email verification code
+     * "phone" → sends SMS OTP
+     * If omitted, defaults to "email" when email is provided, otherwise "phone".
+     */
+    verificationMethod?: "email" | "phone";
 }
 
 export type AthleteRegistrationInput = Required<Pick<CreateAthleteDTO,

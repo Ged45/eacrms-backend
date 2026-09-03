@@ -61,14 +61,16 @@ const options: swaggerJsdoc.Options = {
         // Auth
         RegisterRequest: {
           type: "object",
-          required: ["email", "password", "firstName", "lastName"],
+          required: ["password", "firstName", "lastName"],
           properties: {
-            email:       { type: "string", format: "email", example: "user@example.com" },
-            password:    { type: "string", minLength: 8, example: "Password123" },
-            firstName:   { type: "string", example: "Abebe" },
-            lastName:    { type: "string", example: "Bikila" },
-            phoneNumber: { type: "string", example: "0911000001" },
+            email:              { type: "string", format: "email", example: "user@example.com", description: "Email address (required if phoneNumber is not provided)" },
+            password:           { type: "string", minLength: 8, example: "Password123" },
+            firstName:          { type: "string", example: "Abebe" },
+            lastName:           { type: "string", example: "Bikila" },
+            phoneNumber:        { type: "string", example: "+251911000001", description: "Phone number (required if email is not provided)" },
+            verificationMethod: { type: "string", enum: ["email", "phone"], description: "Which contact method to verify first. Defaults to 'email' if email is provided, otherwise 'phone'." },
           },
+          description: "At least one of email or phoneNumber is required. Use verificationMethod to choose which gets verified immediately.",
         },
         LoginRequest: {
           type: "object",
@@ -181,6 +183,7 @@ const options: swaggerJsdoc.Options = {
             dateOfBirth:            { type: "string", format: "date", example: "1995-06-15", description: "Ignored — extracted from Fayda token" },
             gender:                 { type: "string", enum: ["MALE", "FEMALE"], description: "Ignored — extracted from Fayda token" },
             nationality:            { type: "string", example: "Ethiopian", description: "Optional — defaults to Ethiopian" },
+            verificationMethod:     { type: "string", enum: ["email", "phone"], description: "Which contact method to verify first. Defaults to 'email' if email is provided, otherwise 'phone'." },
           },
         },
         // Response shape for POST /athletes/register (self-registration mobile contract)

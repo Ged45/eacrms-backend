@@ -155,7 +155,8 @@ export class AthleteService {
     });
 
     // ── Initiate email / phone verification ───────────────────────────────
-    const verification = athlete.user.email
+    const verificationMethod = data.verificationMethod ?? (athlete.user.email ? "email" : "phone");
+    const verification = verificationMethod === "email" && athlete.user.email
       ? await verificationService.initiateEmailVerification(athlete.user.id, athlete.user.email)
       : await verificationService.initiatePhoneVerification(athlete.user.id, athlete.user.phoneNumber!);
 

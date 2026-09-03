@@ -78,7 +78,9 @@ export const authService = {
       userAgent: metadata?.userAgent,
     });
 
-    const verification = user.email
+    // Determine verification method based on user's choice or defaults
+    const verificationMethod = data.verificationMethod ?? (user.email ? "email" : "phone");
+    const verification = verificationMethod === "email" && user.email
       ? await verificationService.initiateEmailVerification(user.id, user.email)
       : await verificationService.initiatePhoneVerification(user.id, user.phoneNumber!);
 

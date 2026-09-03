@@ -4,8 +4,9 @@ export interface RegisterDTO {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  verificationMethod?: "email" | "phone";
   ipAddress?: string;
- userAgent?: string;
+  userAgent?: string;
 }
 
 export interface LoginDTO {

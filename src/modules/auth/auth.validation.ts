@@ -25,6 +25,14 @@ export const RegisterSchema = z.object({
   .max(50),
 
   phoneNumber: z.string().trim().min(7, "Invalid phone number").optional(),
+
+  /**
+   * Optional — which contact method to verify immediately after registration.
+   * "email" → sends email verification code
+   * "phone" → sends SMS OTP
+   * If omitted, defaults to "email" when email is provided, otherwise "phone".
+   */
+  verificationMethod: z.enum(["email", "phone"]).optional(),
 }).refine((data) => data.email || data.phoneNumber, {
   message: "Email or phone number is required.",
   path: ["email"],
