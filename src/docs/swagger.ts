@@ -592,15 +592,12 @@ const options: swaggerJsdoc.Options = {
             },
           ],
         },
-      },
-    },
-
-            // ── New Schemas ────────────────────────────────────────────────────────
+        // ── New Endpoint Schemas ─────────────────────
         Application: { type: "object", properties: { id: { type: "string" }, type: { type: "string", enum: ["ATHLETE","CLUB"] }, entityId: { type: "string" }, status: { type: "string", enum: ["PENDING","APPROVED","REJECTED","CHANGES_REQUESTED"] }, reviewNote: { type: "string", nullable: true }, reviewedBy: { type: "object", properties: { id: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" }, email: { type: "string" } }, nullable: true }, reviewedAt: { type: "string", format: "date-time", nullable: true }, createdBy: { type: "object", properties: { id: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" }, email: { type: "string" } } }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
         ReviewApplicationRequest: { type: "object", required: ["status"], properties: { status: { type: "string", enum: ["APPROVED","REJECTED","CHANGES_REQUESTED"] }, reviewNote: { type: "string", maxLength: 2000 } } },
         CompetitionResult: { type: "object", properties: { id: { type: "string" }, eventId: { type: "string" }, categoryId: { type: "string" }, discipline: { type: "string" }, isPublished: { type: "boolean" }, publishedAt: { type: "string", format: "date-time", nullable: true }, entries: { type: "array", items: { $ref: "#/components/schemas/CompetitionResultEntry" } }, createdAt: { type: "string", format: "date-time" } } },
         CompetitionResultEntry: { type: "object", properties: { id: { type: "string" }, athleteId: { type: "string" }, bibNo: { type: "string", nullable: true }, position: { type: "integer" }, mark: { type: "string" }, flag: { type: "string", enum: ["OK","DQ","DNF","DNS"], nullable: true }, medal: { type: "string", enum: ["GOLD","SILVER","BRONZE"], nullable: true }, personalBest: { type: "boolean" }, seasonBest: { type: "boolean" }, remarks: { type: "string", nullable: true } } },
-        CreateCompetitionResultRequest: { type: "object", required: ["categoryId","discipline","entries"], properties: { categoryId: { type: "string" }, discipline: { type: "string" }, entries: { type: "array", minItems: 1, items: { type: "object", required: ["athleteId","position","mark"], properties: { athleteId: { type: "string" }, bibNo: { type: "string" }, position: { type: "integer", minimum: 1 }, mark: { type: "string" }, flag: { type: "string", enum: ["OK","DQ","DNF","DNS"] }, medal: { type: "string", enum: ["GOLD","SILVER","BRONZE"], nullable: true }, personalBest: { type: "boolean", default: false }, seasonBest: { type: "boolean", default: false }, remarks: { type: "string", maxLength: 500 } } } } },
+        CreateCompetitionResultRequest: { type: "object", required: ["categoryId","discipline","entries"], properties: { categoryId: { type: "string" }, discipline: { type: "string" }, entries: { type: "array", minItems: 1, items: { type: "object", required: ["athleteId","position","mark"], properties: { athleteId: { type: "string" }, bibNo: { type: "string" }, position: { type: "integer", minimum: 1 }, mark: { type: "string" }, flag: { type: "string", enum: ["OK","DQ","DNF","DNS"] }, medal: { type: "string", enum: ["GOLD","SILVER","BRONZE"], nullable: true }, personalBest: { type: "boolean", default: false }, seasonBest: { type: "boolean", default: false }, remarks: { type: "string", maxLength: 500 } } } } } },
         CreateUserRequest: { type: "object", required: ["name","email","role"], properties: { name: { type: "string" }, email: { type: "string", format: "email" }, phone: { type: "string" }, role: { type: "string" }, department: { type: "string" }, permissions: { type: "array", items: { type: "string" } } } },
         CreateUserResponse: { type: "object", properties: { id: { type: "string" }, email: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" }, role: { type: "string" }, tempPassword: { type: "string", description: "Auto-generated temporary password" } } },
         UpdateUserRequest: { type: "object", properties: { name: { type: "string" }, phone: { type: "string" }, role: { type: "string" }, department: { type: "string" }, permissions: { type: "array", items: { type: "string" } }, enabled: { type: "boolean" } } },
@@ -610,6 +607,8 @@ const options: swaggerJsdoc.Options = {
         AthletePenalty: { type: "object", properties: { id: { type: "string" }, athleteId: { type: "string" }, type: { type: "string", enum: ["Warning","Fine","Restriction","Suspension"] }, reason: { type: "string" }, severity: { type: "string", enum: ["low","medium","high"] }, issuedBy: { type: "object", properties: { id: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" } } }, createdAt: { type: "string", format: "date-time" } } },
         AuditLog: { type: "object", properties: { id: { type: "string" }, userId: { type: "string" }, action: { type: "string" }, entity: { type: "string" }, entityId: { type: "string", nullable: true }, newValue: { type: "object", nullable: true }, ipAddress: { type: "string", nullable: true }, userAgent: { type: "string", nullable: true }, createdAt: { type: "string", format: "date-time" }, user: { type: "object", properties: { id: { type: "string" }, firstName: { type: "string" }, lastName: { type: "string" }, email: { type: "string" } } } } },
         DashboardAnalytics: { type: "object", properties: { totalClubs: { type: "integer", example: 42 }, totalAthletes: { type: "integer", example: 1580 }, activeEvents: { type: "integer", example: 5 }, pendingApplications: { type: "integer", example: 12 } } },
+      },
+    },
 
     // ─── Global security (override per-route with security: [] for public) ────
     security: [{ bearerAuth: [] }],
@@ -2371,7 +2370,23 @@ const options: swaggerJsdoc.Options = {
             200: { description: "User deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "User abebe@example.com has been permanently deleted." } } } } } },
             400: { description: "Cannot delete own account", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
             404: { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        patch: { tags: ["Admin — Users"], summary: "Update user details", description: "Updates user name, phone, role, permissions, and enabled status.", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateUserRequest" } } } }, responses: { 200: { description: "User updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/UserPublic" } } } } } }, 404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } },
+          },
+        },
+        patch: {
+          tags: ["Admin — Users"],
+          summary: "Update user details",
+          description: "Updates user name, phone, role, permissions, and enabled status.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "id", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateUserRequest" } } },
+          },
+          responses: {
+            200: { description: "User updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/UserPublic" } } } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
@@ -2523,7 +2538,6 @@ const options: swaggerJsdoc.Options = {
           responses: {
             200: { description: "Club", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } },
             404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        patch: { tags: ["Clubs"], summary: "Update club details", description: "Partially update a clubs profile fields.", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateClubRequest" } } } }, responses: { 200: { description: "Club updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } }, 404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } },
           },
         },
         delete: {
@@ -2533,6 +2547,23 @@ const options: swaggerJsdoc.Options = {
           parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, example: "clxyz123" }],
           responses: {
             200: { description: "Deleted", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } } } } },
+          },
+        },
+        patch: {
+          tags: ["Clubs"],
+          summary: "Update club details",
+          description: "Partially update a clubs profile fields.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "id", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateClubRequest" } } },
+          },
+          responses: {
+            200: { description: "Club updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/ClubProfile" } } } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           },
         },
       },
@@ -3112,24 +3143,156 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
-    },
-  },
-        // ── Applications Review Queue ──────────────────────
-      "/admin/applications": { get: { tags: ["Applications"], summary: "List applications for review", description: "Paginated list of athlete and club applications.", security: [{ bearerAuth: [] }], parameters: [{ in: "query", name: "type", schema: { type: "string", enum: ["ATHLETE","CLUB"] } }, { in: "query", name: "status", schema: { type: "string", enum: ["PENDING","APPROVED","REJECTED","CHANGES_REQUESTED"] } }, { in: "query", name: "eventId", schema: { type: "string" } }, { in: "query", name: "page", schema: { type: "integer", default: 1 } }, { in: "query", name: "limit", schema: { type: "integer", default: 20, maximum: 100 } }], responses: { 200: { description: "Paginated applications", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Application" } }, pagination: { type: "object", properties: { page: { type: "integer" }, limit: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } } } } } } } }, 403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      "/admin/applications/{id}": { patch: { tags: ["Applications"], summary: "Review an application", description: "Approve, reject, or request changes on a pending application.", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ReviewApplicationRequest" } } } }, responses: { 200: { description: "Application reviewed", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Application" } } } } } }, 400: { description: "Already reviewed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, 404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      // ── Competition Results ────────────────────────
-      "/events/{eventId}/results": { post: { tags: ["Competition Results"], summary: "Create competition results for an event", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateCompetitionResultRequest" } } } }, responses: { 201: { description: "Results created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CompetitionResult" } } } } } }, 404: { description: "Event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      "/events/{eventId}/results/publish": { patch: { tags: ["Competition Results"], summary: "Publish competition results", description: "Publishes all unpublished results for an event.", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "eventId", required: true, schema: { type: "string" } }], responses: { 200: { description: "Results published", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { type: "object", properties: { published: { type: "integer" } } } } } } } }, 400: { description: "No unpublished results", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, 404: { description: "Event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      // ── Staff & Role Administration ──────────────
-      "/admin/users": { post: { tags: ["Admin — Users"], summary: "Create a new staff user", description: "Creates a user with the specified role and auto-generates a temporary password.", security: [{ bearerAuth: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateUserRequest" } } } }, responses: { 201: { description: "User created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CreateUserResponse" } } } } } }, 409: { description: "Email exists", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      // ── Entity Updates ──────────────────────────
-      "/events/{id}": { patch: { tags: ["Events"], summary: "Update event details", description: "Partially update an events fields.", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateEventRequest" } } } }, responses: { 200: { description: "Event updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Event" } } } } } }, 404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      "/athletes/{id}/penalties": { post: { tags: ["Athletes"], summary: "Issue a penalty to an athlete", security: [{ bearerAuth: [] }], parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreatePenaltyRequest" } } } }, responses: { 201: { description: "Penalty issued", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthletePenalty" } } } } } }, 404: { description: "Athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      // ── Audit Logging & Analytics ──────────────────
-      "/admin/activity-logs": { get: { tags: ["Audit & Analytics"], summary: "List activity logs", description: "Paginated query of audit logs with filters.", security: [{ bearerAuth: [] }], parameters: [{ in: "query", name: "userId", schema: { type: "string" } }, { in: "query", name: "entityType", schema: { type: "string" } }, { in: "query", name: "severity", schema: { type: "string" } }, { in: "query", name: "search", schema: { type: "string" } }, { in: "query", name: "page", schema: { type: "integer", default: 1 } }, { in: "query", name: "limit", schema: { type: "integer", default: 20, maximum: 100 } }], responses: { 200: { description: "Paginated audit logs", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/AuditLog" } }, pagination: { type: "object", properties: { page: { type: "integer" }, limit: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } } } } } } } }, 403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      "/analytics/dashboard": { get: { tags: ["Audit & Analytics"], summary: "Get dashboard analytics", description: "Returns aggregate counts for clubs, athletes, active events, and pending applications.", security: [{ bearerAuth: [] }], responses: { 200: { description: "Dashboard analytics", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/DashboardAnalytics" } } } } } }, 403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-
+      // ── Applications Review Queue ──────────────────────
+      "/admin/applications": {
+        get: {
+          tags: ["Applications"],
+          summary: "List applications for review",
+          description: "Paginated list of athlete and club applications.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "query", name: "type", schema: { type: "string", enum: ["ATHLETE","CLUB"] } },
+            { in: "query", name: "status", schema: { type: "string", enum: ["PENDING","APPROVED","REJECTED","CHANGES_REQUESTED"] } },
+            { in: "query", name: "eventId", schema: { type: "string" } },
+            { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+            { in: "query", name: "limit", schema: { type: "integer", default: 20, maximum: 100 } },
+          ],
+          responses: {
+            200: { description: "Paginated applications", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/Application" } }, pagination: { type: "object", properties: { page: { type: "integer" }, limit: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } } } } } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
       },
+      "/admin/applications/{id}": {
+        patch: {
+          tags: ["Applications"],
+          summary: "Review an application",
+          description: "Approve, reject, or request changes on a pending application.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "id", required: true, schema: { type: "string" } },
+          ],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ReviewApplicationRequest" } } } },
+          responses: {
+            200: { description: "Application reviewed", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Application" } } } } } },
+            400: { description: "Already reviewed", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Competition Results ────────────────────────
+      "/events/{eventId}/results": {
+        post: {
+          tags: ["Competition Results"],
+          summary: "Create competition results for an event",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "eventId", required: true, schema: { type: "string" } },
+          ],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateCompetitionResultRequest" } } } },
+          responses: {
+            201: { description: "Results created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CompetitionResult" } } } } } },
+            404: { description: "Event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/events/{eventId}/results/publish": {
+        patch: {
+          tags: ["Competition Results"],
+          summary: "Publish competition results",
+          description: "Publishes all unpublished results for an event.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "eventId", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Results published", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { type: "object", properties: { published: { type: "integer" } } } } } } } },
+            400: { description: "No unpublished results", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+            404: { description: "Event not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Staff & Role Administration ──────────────
+      "/admin/users": {
+        post: {
+          tags: ["Admin — Users"],
+          summary: "Create a new staff user",
+          description: "Creates a user with the specified role and auto-generates a temporary password.",
+          security: [{ bearerAuth: [] }],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateUserRequest" } } } },
+          responses: {
+            201: { description: "User created", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/CreateUserResponse" } } } } } },
+            409: { description: "Email exists", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Entity Updates ──────────────────────────
+      "/events/{id}": {
+        patch: {
+          tags: ["Events"],
+          summary: "Update event details",
+          description: "Partially update an events fields.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "id", required: true, schema: { type: "string" } },
+          ],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateEventRequest" } } } },
+          responses: {
+            200: { description: "Event updated", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/Event" } } } } } },
+            404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/athletes/{id}/penalties": {
+        post: {
+          tags: ["Athletes"],
+          summary: "Issue a penalty to an athlete",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "path", name: "id", required: true, schema: { type: "string" } },
+          ],
+          requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreatePenaltyRequest" } } } },
+          responses: {
+            201: { description: "Penalty issued", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, data: { $ref: "#/components/schemas/AthletePenalty" } } } } } },
+            404: { description: "Athlete not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      // ── Audit Logging & Analytics ──────────────────
+      "/admin/activity-logs": {
+        get: {
+          tags: ["Audit & Analytics"],
+          summary: "List activity logs",
+          description: "Paginated query of audit logs with filters.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: "query", name: "userId", schema: { type: "string" } },
+            { in: "query", name: "entityType", schema: { type: "string" } },
+            { in: "query", name: "severity", schema: { type: "string" } },
+            { in: "query", name: "search", schema: { type: "string" } },
+            { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+            { in: "query", name: "limit", schema: { type: "integer", default: 20, maximum: 100 } },
+          ],
+          responses: {
+            200: { description: "Paginated audit logs", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "array", items: { $ref: "#/components/schemas/AuditLog" } }, pagination: { type: "object", properties: { page: { type: "integer" }, limit: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } } } } } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+      "/analytics/dashboard": {
+        get: {
+          tags: ["Audit & Analytics"],
+          summary: "Get dashboard analytics",
+          description: "Returns aggregate counts for clubs, athletes, active events, and pending applications.",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "Dashboard analytics", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { $ref: "#/components/schemas/DashboardAnalytics" } } } } } },
+            403: { description: "Forbidden", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          },
+        },
+      },
+    },
+    },
   // No external files needed — all paths are inlined above
   apis: [],
 };
