@@ -7,6 +7,8 @@ import { validate } from "../../middleware/validate.middleware";
 import { createAthleteSchema, createAthleteByAdminSchema, updateProfileSchema, createPersonalBestSchema, createTrainingLogSchema, createWeightLogSchema } from "./athlete.validation";
 
 import { authenticate } from "../../middleware/auth.middleware";
+import { athletePenaltyController } from "./athlete-penalty.controller";
+import { createPenaltySchema } from "./athlete-penalty.validation";
 
 import { authorize } from "../../middleware/authorize.middleware";
 

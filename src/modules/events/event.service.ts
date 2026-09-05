@@ -107,4 +107,21 @@ export const eventService = {
     await auditService.log({ userId, action, entity: "Event", entityId: id, details: { previousStatus: from, newStatus: to, reason }, ...metadata });
     return updated;
   },
+
+  async update(id: string, userId: string, data: Record<string, any>, metadata?: Metadata) {
+    const event = await this.findById(id);
+    
+    const allowedFields = ["title", "name", "description", "category", "venue", "organizerName", "organizerEmail", "organizerPhone", "participantLimit"];
+    const updateData: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    if (data.startDate) updateData.startDate = new Date(data.startDate);
+    if (data.endDate) updateData.endDate = new Date(data.endDate);
+    if (data.location) updateData.venue = data.location;
+
+    const updated = await eventRepository.update(id, updateData);
+    await auditService.log({ userId, action: AuditActions.UPDATE_EVENT, entity: "Event", entityId: id, details: updateData, ...metadata });
+    return updated;
+  },
 };

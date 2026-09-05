@@ -413,4 +413,26 @@ export const clubService = {
 
     return clubRepository.delete(id);
   },
+  async update(id: string, data: Record<string, any>, userId: string, metadata?: RequestMetadata) {
+    const club = await clubRepository.findById(id);
+    if (!club) {
+      throw new NotFoundError("Club not found.", { code: "CLUB_NOT_FOUND", entity: "Club" });
+    }
+    const allowedFields = ["email", "phone", "address", "city", "region", "logoUrl"];
+    const updateData: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    const updated = await clubRepository.update(id, updateData);
+    await auditService.log({
+      userId,
+      action: AuditActions.UPDATE_CLUB,
+      entity: "Club",
+      entityId: id,
+      details: updateData,
+      ipAddress: metadata?.ipAddress,
+      userAgent: metadata?.userAgent,
+    });
+    return updated;
+  },
 };

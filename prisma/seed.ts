@@ -127,6 +127,10 @@ const permissions = [
   { name: "news:view", description: "View news articles" },
   { name: "news:update", description: "Update news articles" },
   { name: "news:delete", description: "Delete news articles" },
+  { name: "events:applications", description: "View application review queue" },
+  { name: "events:manage", description: "Manage and review applications" },
+  { name: "club:manage", description: "Update club details" },
+  { name: "analytics:view", description: "View analytics dashboard" },
 ];
 
 /**
@@ -163,6 +167,10 @@ const rolePermissions: Record<string, string[]> = {
     "news:view",
     "news:update",
     "news:delete",
+    "events:applications",
+    "events:manage",
+    "club:manage",
+    "analytics:view",
   ],
 
   REGIONAL_ADMIN: [

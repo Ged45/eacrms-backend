@@ -142,6 +142,36 @@ enum FaydaVerificationStatus {
   EXPIRED
 }
 
+// ─── Application Review Queue ───────────────────────────────────────────────
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+enum ApplicationType {
+  ATHLETE
+  CLUB
+}
+
+// ─── Athlete Penalties ─────────────────────────────────────────────────────
+
+enum PenaltyType {
+  Warning
+  Fine
+  Restriction
+  Suspension
+}
+
+enum PenaltySeverity {
+  low
+  medium
+  high
+}
+
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -182,6 +212,10 @@ model User {
   eventCheckIns      EventCheckIn[] @relation("CheckInScanner")
   payments           Payment[]
   eventRegistrations EventRegistration[]
+  applicationsCreated    Application[] @relation("ApplicationCreator")
+  applicationsReviewed   Application[] @relation("ApplicationReviewer")
+  competitionResultsCreated CompetitionResult[]
+  athletePenaltiesIssued    AthletePenalty[]
 }
 
 model Sport {
@@ -291,6 +325,8 @@ model Athlete {
   personalBests      PersonalBest[]
   trainingLogs       TrainingLog[]
   weightLogs         WeightLog[]
+  penalties                  AthletePenalty[]
+  competitionResultEntries   CompetitionResultEntry[]
 }
 
 enum PersonalBestScope {
@@ -509,6 +545,7 @@ model Event {
   attendees         EventAttendee[]
   registrations     EventRegistration[]
   payments          Payment[]
+  competitionResults CompetitionResult[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -935,4 +972,81 @@ model PastSeason {
   updatedAt     DateTime  @updatedAt
 
   @@index([year])
+}
+
+
+// ─── Applications Review Queue ────────────────────────────────────────────────
+
+model Application {
+  id           String            @id @default(cuid())
+  type         ApplicationType
+  entityId     String
+  status       ApplicationStatus @default(PENDING)
+  reviewNote   String?
+  reviewedById String?
+  reviewedBy   User?             @relation("ApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  createdById  String
+  createdBy    User              @relation("ApplicationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([type, status])
+  @@index([entityId])
+}
+
+// ─── Competition Results Management ───────────────────────────────────────────
+
+model CompetitionResult {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  categoryId   String
+  discipline   String
+  isPublished  Boolean  @default(false)
+  publishedAt  DateTime?
+  createdById  String
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entries      CompetitionResultEntry[]
+
+  @@index([eventId])
+  @@index([isPublished])
+}
+
+model CompetitionResultEntry {
+  id                   String            @id @default(cuid())
+  competitionResultId  String
+  competitionResult    CompetitionResult @relation(fields: [competitionResultId], references: [id], onDelete: Cascade)
+  athleteId            String
+  athlete              Athlete           @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  bibNo                String?
+  position             Int
+  mark                 String
+  flag                 String?
+  medal                String?
+  personalBest         Boolean           @default(false)
+  seasonBest           Boolean           @default(false)
+  remarks              String?
+
+  @@index([competitionResultId])
+  @@index([athleteId])
+}
+
+// ─── Athlete Penalties ───────────────────────────────────────────────────────
+
+model AthletePenalty {
+  id         String          @id @default(cuid())
+  athleteId  String
+  athlete    Athlete         @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  type       PenaltyType
+  reason     String
+  severity   PenaltySeverity
+  issuedById String
+  issuedBy   User            @relation(fields: [issuedById], references: [id], onDelete: Restrict)
+  createdAt  DateTime        @default(now())
+
+  @@index([athleteId])
 }

@@ -89,3 +89,11 @@ export const rejectClubSchema = z.object({
     .min(5)
     .max(500),
 });
+export const updateClubSchema = z.object({
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  region: z.string().optional(),
+  logoUrl: z.string().url().optional(),
+});

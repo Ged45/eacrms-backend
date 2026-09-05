@@ -12,6 +12,7 @@ import {
   registerClubSchema,
   registerClubAdminSchema,
   rejectClubSchema,
+  updateClubSchema,
 } from "./club.validation";
 
 const router = Router();
@@ -121,3 +122,10 @@ router.delete(
 );
 
 export default router;
+router.patch(
+  "/:id",
+  authenticate,
+  authorize("club:manage"),
+  validate(updateClubSchema),
+  clubController.update
+);

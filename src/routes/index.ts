@@ -18,6 +18,12 @@ import newsUploadRoutes from "../modules/news/news.upload.routes";
 import galleryRoutes from "../modules/gallery/gallery.routes";
 import resultRoutes from "../modules/results/result.routes";
 import historyRoutes from "../modules/history/history.routes";
+import auditRoutes from "../modules/audit/audit.routes";
+import analyticsRoutes from "../modules/analytics/analytics.routes";
+import applicationRoutes from "../modules/applications/application.routes";
+import competitionResultRoutes from "../modules/competition-results/competition-result.routes";
+import adminRoutes, { userUpdateRouter } from "../modules/admin/admin.routes";
+
 
 const router = Router();
 
@@ -55,5 +61,20 @@ router.use("/media", galleryRoutes);
 
 router.use("/results", resultRoutes);
 router.use("/history", historyRoutes);
+
+
+// ─── Admin Endpoints ────────────────────────────────────────────────────────
+router.use("/admin/activity-logs", auditRoutes);
+router.use("/admin/applications", applicationRoutes);
+router.use("/admin", adminRoutes);
+
+// ─── Analytics ──────────────────────────────────────────────────────────────
+router.use("/analytics", analyticsRoutes);
+
+// ─── Competition Results ────────────────────────────────────────────────────
+router.use("/events", competitionResultRoutes);
+
+// ─── User Update (PATCH /users/:id) ────────────────────────────────────────
+router.use("/users", userUpdateRouter);
 
 export default router;

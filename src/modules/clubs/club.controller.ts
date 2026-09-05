@@ -221,4 +221,14 @@ export const clubController = {
       message: "Club deleted successfully.",
     });
   }),
+
+  update: asyncHandler(async (req: Request, res: Response) => {
+    const club = await clubService.update(
+      req.params.id as string,
+      req.body,
+      req.user.userId,
+      { ipAddress: req.ip, userAgent: req.get("user-agent") || undefined }
+    );
+    res.status(200).json({ success: true, message: "Club updated successfully.", data: club });
+  }),
 };

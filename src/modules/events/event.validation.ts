@@ -32,3 +32,18 @@ export const overrideEventStatusSchema = z.object({
 });
 
 export type CreateEventDTO = z.infer<typeof createEventSchema>;
+
+export const updateEventSchema = z.object({
+  name: z.string().min(3).max(160).optional(),
+  title: z.string().min(3).max(160).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  location: z.string().max(300).optional(),
+  venue: z.string().max(300).optional(),
+  participantLimit: z.number().int().min(0).optional(),
+  description: z.string().max(5000).optional(),
+  category: z.string().min(2).max(100).optional(),
+  organizerName: z.string().min(2).max(160).optional(),
+  organizerEmail: z.string().email().optional(),
+  organizerPhone: z.string().min(5).max(30).optional(),
+});

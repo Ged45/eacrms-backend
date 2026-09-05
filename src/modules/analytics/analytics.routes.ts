@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/authorize.middleware";
-import { auditController } from "./audit.controller";
+import { analyticsController } from "./analytics.controller";
 
 const router = Router();
 
-router.get("/", authenticate, authorize("audit:view"), auditController.getLogs);
+router.get("/dashboard", authenticate, authorize("analytics:view"), analyticsController.getDashboard);
 
 export default router;

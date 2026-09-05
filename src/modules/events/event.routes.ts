@@ -3,7 +3,7 @@ import { authenticate } from "../../middleware/auth.middleware";
 import { authorize } from "../../middleware/authorize.middleware";
 import { validate } from "../../middleware/validate.middleware";
 import { eventController } from "./event.controller";
-import { createEventSchema, overrideEventStatusSchema, statusReasonSchema } from "./event.validation";
+import { createEventSchema, overrideEventStatusSchema, statusReasonSchema, updateEventSchema } from "./event.validation";
 import { enforcePolicies } from "../../middleware/policy-enforcement.middleware";
 import { PolicyScope } from "@prisma/client";
 import { eventCheckInController } from "./event-checkin.controller";
@@ -25,3 +25,5 @@ router.patch("/:id/reject", authenticate, authorize("event:approve"), validate(s
 router.patch("/:id/status", authenticate, authorize("event:override"), validate(overrideEventStatusSchema), eventController.overrideStatus);
 
 export default router;
+
+router.patch("/:id", authenticate, authorize("event:create"), validate(updateEventSchema), eventController.update);

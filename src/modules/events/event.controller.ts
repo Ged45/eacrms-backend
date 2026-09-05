@@ -38,4 +38,9 @@ export const eventController = {
     const event = await eventService.overrideStatus(req.params.id as string, req.user.userId, req.body.status as EventStatus, req.body.reason, metadata(req));
     res.json({ success: true, message: "Event status overridden.", data: event });
   }),
+
+  update: asyncHandler(async (req: Request, res: Response) => {
+    const event = await eventService.update(req.params.id as string, req.user.userId, req.body, metadata(req));
+    res.json({ success: true, message: "Event updated.", data: event });
+  }),
 };

@@ -86,4 +86,8 @@ export const eventRepository = {
       return tx.event.findUniqueOrThrow({ where: { id }, include: eventDetails });
     });
   },
+
+  update(id: string, data: Prisma.EventUpdateInput) {
+    return prisma.event.update({ where: { id }, data, include: eventDetails });
+  },
 };
